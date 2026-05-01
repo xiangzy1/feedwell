@@ -1,0 +1,107 @@
+import { useState, useCallback, useEffect } from 'react'
+import Sidebar from './components/Sidebar/Sidebar'
+import ArticleList from './components/ArticleList/ArticleList'
+import ArticleView from './components/ArticleView/ArticleView'
+import AddFeedDialog from './components/Sidebar/AddFeedDialog'
+import SettingsDialog from './components/Settings/SettingsDialog'
+import StatsDialog from './components/Stats/StatsDialog'
+import { useArticles } from './hooks/useArticles'
+import { useFeeds } from './hooks/useFeeds'
+import { useShortcuts } from './hooks/useShortcuts'
+import { useThemeProvider, ThemeProvider } from './hooks/useTheme'
+import './styles/global.css'
+import './styles/stats.css'
+
+export default function App() {
+  const [selectedFeedId, setSelectedFeedId] = useState<number | null>(null)
+  const [selectedFilter, setSelectedFilter] = useState<string | null>('all')
+  const [showAddFeed, setShowAddFeed] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+  const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
+  const themeCtx = useThemeProvider()
+  const { feeds, reload: reloadFeeds } = useFeeds()
+  const { articles, selectedId, setSelectedId, markRead, markStarred, markAllRead } = useArticles({
+    feedId: selectedFeedId,
+    filter: selectedFilter
+  })
+  const selectedArticle = articles.find(a => a.id === selectedId) || null
+  const activeFeedId = selectedArticle?.feed_id ?? selectedFeedId
+
+  useShortcuts({
+    articles,
+    selectedId,
+    onSelectArticle: setSelectedId,
+    onMarkRead: markRead,
+    onToggleStar: markStarred,
+    selectedArticle
+  })
+
+  useEffect(() => {
+    return window.api.onMenuAddFeed(() => setShowAddFeed(true))
+  }, [])
+
+  useEffect(() => {
+    return window.api.onMenuImportOpml(async () => {
+      await window.api.opml.import()
+      await window.api.feeds.refresh()
+      reloadFeeds()
+    })
+  }, [reloadFeeds])
+
+  useEffect(() => {
+    return window.api.onMenuExportOpml(() => window.api.opml.export())
+  }, [])
+
+  useEffect(() => {
+    const unsubProgress = window.api.onRefreshProgress((p) => setRefreshProgress(p))
+    const unsubDone = window.api.onRefreshDone(() => setRefreshProgress(null))
+    window.api.feeds.refreshStale()
+    return () => { unsubProgress(); unsubDone() }
+  }, [])
+
+  const handleAddFeed = useCallback(async (url: string) => {
+    const result = await window.api.feeds.add(url)
+    if (result && result.error) {
+      throw new Error(result.error)
+    }
+    setShowAddFeed(false)
+    reloadFeeds()
+  }, [reloadFeeds])
+
+  return (
+    <ThemeProvider value={themeCtx}>
+      <div className="app">
+        <Sidebar
+          selectedFeedId={selectedFeedId}
+          selectedFilter={selectedFilter}
+          activeFeedId={activeFeedId}
+          refreshProgress={refreshProgress}
+          onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }}
+          onSelectFilter={(filter) => { setSelectedFilter(filter); setSelectedFeedId(null) }}
+          onShowAddFeed={() => setShowAddFeed(true)}
+          onShowSettings={() => setShowSettings(true)}
+          onShowStats={() => setShowStats(true)}
+        />
+        <ArticleList
+          articles={articles}
+          selectedId={selectedId}
+          onSelect={(id) => { setSelectedId(id); markRead(id) }}
+          onMarkAllRead={() => markAllRead(selectedFeedId || undefined)}
+          filter={selectedFilter}
+        />
+        <ArticleView
+          article={selectedArticle}
+          onToggleStar={markStarred}
+          onToggleRead={markRead}
+          feeds={feeds}
+        />
+        {showAddFeed && (
+          <AddFeedDialog onAdd={handleAddFeed} onClose={() => setShowAddFeed(false)} />
+        )}
+        {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
+        {showStats && <StatsDialog onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />}
+      </div>
+    </ThemeProvider>
+  )
+}

@@ -1,0 +1,218 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  user-select: none;
+}
+
+.sidebar-section {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-feeds {
+  flex: 1;
+  overflow-y: auto;
+  border-bottom: none;
+}
+
+.sidebar-folder-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sidebar-folder-header:hover {
+  background: var(--bg-hover);
+}
+
+.sidebar-folder-chevron {
+  display: inline-block;
+  margin-right: 4px;
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.sidebar-folder-header.collapsed .sidebar-folder-chevron {
+  transform: rotate(-90deg);
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  gap: 4px;
+}
+
+.sidebar-folder > .sidebar-item {
+  padding-left: 22px;
+}
+
+.sidebar-item:hover { background: var(--bg-hover); }
+.sidebar-item.selected { background: var(--bg-selected); font-weight: 600; }
+.sidebar-item.selected .sidebar-item-count { color: var(--text-secondary); }
+.sidebar-item.active-feed {
+  background: rgba(0, 96, 223, 0.08);
+}
+
+.sidebar-item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.sidebar-item-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 16px;
+  text-align: right;
+}
+
+.sidebar-item-action {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.3;
+  color: var(--text-secondary);
+  padding: 2px;
+}
+.sidebar-item:hover .sidebar-item-action { opacity: 0.7; }
+
+.sidebar-toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.sidebar-toolbar button {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 8px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.sidebar-toolbar button:hover { background: var(--bg-hover); }
+
+/* Inline progress bar */
+.sidebar-progress {
+  height: 3px;
+  flex-shrink: 0;
+  background: transparent;
+}
+.sidebar-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+/* Browser badge */
+.sidebar-item-badge {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* Context menu */
+.context-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+.context-menu {
+  position: fixed;
+  z-index: 91;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 180px;
+  box-shadow: 0 4px 16px var(--shadow-color);
+}
+.context-menu-item {
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.context-menu-item:hover { background: var(--accent); color: white; }
+.context-menu-item.danger { color: var(--danger); }
+.context-menu-item.danger:hover { background: var(--danger); color: white; }
+
+/* Dialog */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: var(--bg-surface);
+  border-radius: 10px;
+  padding: 20px;
+  width: 380px;
+  box-shadow: 0 8px 32px var(--shadow-color);
+}
+
+.dialog h3 { margin-bottom: 12px; font-size: 15px; }
+
+.dialog-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+}
+.dialog-input:focus { border-color: var(--accent); }
+
+.dialog-error { color: var(--danger); font-size: 12px; margin-top: 6px; }
+
+.dialog-option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dialog-option-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.dialog-radio { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:disabled { opacity: 0.5; }
+.btn-secondary { background: var(--bg-secondary); }

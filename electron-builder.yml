@@ -1,0 +1,17 @@
+appId: com.feedwell.app
+productName: Feedwell
+directories:
+  buildResources: resources
+  output: dist
+mac:
+  category: public.app-category.news
+  target:
+    - target: dmg
+      arch:
+        - universal
+  minimumSystemVersion: '11.0'
+extraResources:
+  - from: node_modules/better-sqlite3/prebuilds
+    to: prebuilds
+    filter:
+      - "**/*"
