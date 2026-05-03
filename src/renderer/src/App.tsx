@@ -60,7 +60,7 @@ export default function App() {
   useEffect(() => {
     const unsubProgress = window.api.onRefreshProgress((p) => setRefreshProgress(p))
     const unsubDone = window.api.onRefreshDone(() => setRefreshProgress(null))
-    window.api.feeds.refreshStale()
+    window.api.isColdStart().then((cold) => { if (cold) window.api.feeds.refreshStale() })
     return () => { unsubProgress(); unsubDone() }
   }, [])
 

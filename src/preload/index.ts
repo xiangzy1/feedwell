@@ -46,6 +46,7 @@ const api = {
   },
   onRefreshDone: (callback: () => void) => onChannel('feeds:refreshDone', callback),
   openExternal: (url: string) => ipcRenderer.invoke('openExternal', url),
+  isColdStart: () => ipcRenderer.invoke('app:isColdStart'),
   onMenuAddFeed: (callback: () => void) => onChannel('menu:addFeed', callback),
   onMenuImportOpml: (callback: () => void) => onChannel('menu:importOpml', callback),
   onMenuExportOpml: (callback: () => void) => onChannel('menu:exportOpml', callback)

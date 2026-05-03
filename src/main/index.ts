@@ -1,6 +1,7 @@
-import { app, BrowserWindow, Menu, ipcMain, nativeImage, session, shell } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, nativeImage, nativeTheme, session, shell } from 'electron'
 import { join } from 'path'
 import { initDatabase } from './db'
+import { getSetting, getSettingJson, setSetting } from './ipc/settings'
 import { startScheduler, stopScheduler } from './services/scheduler'
 import { registerFeedIpc } from './ipc/feeds'
 import { registerArticleIpc } from './ipc/articles'
@@ -10,6 +11,7 @@ import { registerOpmlIpc } from './ipc/opml'
 import { registerStatsIpc } from './ipc/stats'
 
 const isDev = !app.isPackaged
+let isColdStart = true
 
 const iconPath = join(__dirname, '../../resources/icon.png')
 
@@ -26,6 +28,7 @@ app.whenReady().then(() => {
   registerSettingsIpc()
   registerOpmlIpc()
   registerStatsIpc()
+  ipcMain.handle('app:isColdStart', () => isColdStart)
   createMainWindow()
   startScheduler()
 
@@ -38,6 +41,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   stopScheduler()
+  isColdStart = false
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -102,10 +106,29 @@ function setupMenu(win: BrowserWindow) {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
+function loadWindowBounds() {
+  return getSettingJson<{ width: number; height: number; x?: number; y?: number }>('windowBounds')
+}
+
+function saveWindowBounds(win: BrowserWindow) {
+  const { width, height, x, y } = win.getBounds()
+  setSetting('windowBounds', { width, height, x, y })
+}
+
+function loadThemeColor(): string {
+  const theme = getSettingJson<string>('theme')
+  const dark = theme === 'dark' || (theme !== 'light' && nativeTheme.shouldUseDarkColors)
+  return dark ? '#252525' : '#ffffff'
+}
+
 function createMainWindow() {
+  const bounds = loadWindowBounds()
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: bounds?.width ?? 1200,
+    height: bounds?.height ?? 800,
+    ...(bounds?.x != null && bounds?.y != null ? { x: bounds.x, y: bounds.y } : {}),
+    backgroundColor: loadThemeColor(),
+    show: false,
     titleBarStyle: 'hiddenInset',
     icon: iconPath,
     webPreferences: {
@@ -115,6 +138,8 @@ function createMainWindow() {
       webviewTag: true
     }
   })
+  win.once('ready-to-show', () => win.show())
+  win.on('close', () => saveWindowBounds(win))
   setupMenu(win)
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])

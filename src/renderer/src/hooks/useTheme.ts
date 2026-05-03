@@ -27,6 +27,7 @@ export function useThemeProvider() {
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t)
     localStorage.setItem(STORAGE_KEY, t)
+    window.api.settings.set('theme', t)
   }, [])
 
   useEffect(() => {

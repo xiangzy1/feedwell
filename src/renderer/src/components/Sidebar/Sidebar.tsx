@@ -159,7 +159,7 @@ export default function Sidebar({ selectedFeedId, selectedFilter, activeFeedId, 
         <button onClick={onShowAddFeed} title="Add Feed">+</button>
         <button onClick={() => window.api.feeds.refresh()} title="Refresh All">↻</button>
         <button onClick={onShowStats} title="Statistics">☰</button>
-        <button onClick={onShowSettings} title="Settings">⋮</button>
+        <button onClick={onShowSettings} title="Settings">⚙</button>
       </div>
     </aside>
   )
