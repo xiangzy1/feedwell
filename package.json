@@ -7,7 +7,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build && vite build --config vite.stats.config.ts",
     "preview": "electron-vite preview",
-    "package": "electron-vite build && vite build --config vite.stats.config.ts && electron-builder"
+    "package": "electron-vite build && vite build --config vite.stats.config.ts && electron-builder --publish never"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

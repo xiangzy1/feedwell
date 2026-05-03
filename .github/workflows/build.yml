@@ -22,9 +22,30 @@ jobs:
 
       - run: pnpm install
 
-      - run: pnpm package
+      - run: pnpm package -- --publish never
 
       - uses: actions/upload-artifact@v4
         with:
           name: Feedwell-macOS
           path: dist/*.dmg
+
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install
+
+      - run: pnpm package -- --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Feedwell-Windows
+          path: dist/*.exe
