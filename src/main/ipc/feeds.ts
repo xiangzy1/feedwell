@@ -1,22 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { getDb } from '../db'
 import { fetchFeed, discoverFeed } from '../services/feed-fetcher'
-
-let _bulkRefreshing = false
-
-function safeSend(sender: BrowserWindow | null, channel: string, data?: any) {
-  if (sender && !sender.isDestroyed()) sender.webContents.send(channel, data)
-}
-
-async function bulkRefresh(feeds: any[], sender: BrowserWindow | null) {
-  for (let i = 0; i < feeds.length; i++) {
-    await fetchFeed(feeds[i].id, feeds[i].url)
-    safeSend(sender, 'feeds:refreshProgress', { current: i + 1, total: feeds.length })
-  }
-  safeSend(sender, 'feeds:refreshDone')
-  notifyFeedsUpdated()
-  notifyArticlesUpdated()
-}
+import { enqueue } from '../services/refresh-queue'
 
 export function registerFeedIpc(): void {
   ipcMain.handle('feeds:add', async (_event, url: string, folderId?: number) => {
@@ -92,43 +77,35 @@ export function registerFeedIpc(): void {
       notifyArticlesUpdated()
       return
     }
-    if (_bulkRefreshing) return
-    _bulkRefreshing = true
-    try {
-      const feeds = getDb().prepare('SELECT * FROM feeds').all() as any[]
-      const sender = BrowserWindow.fromWebContents(_event.sender)
-      await bulkRefresh(feeds, sender)
-    } finally {
-      _bulkRefreshing = false
-    }
+    const feeds = getDb().prepare('SELECT * FROM feeds').all() as any[]
+    await enqueue(feeds)
   })
 
   ipcMain.handle('feeds:refreshStale', async (_event) => {
-    if (_bulkRefreshing) return
-    _bulkRefreshing = true
-    try {
-      const feeds = getDb().prepare(`
-        SELECT * FROM feeds
-        WHERE last_fetched_at IS NULL
-           OR datetime(last_fetched_at, '+' || COALESCE(refresh_interval, 30) || ' minutes') <= datetime('now')
-      `).all() as any[]
-      if (feeds.length === 0) return
-      const sender = BrowserWindow.fromWebContents(_event.sender)
-      await bulkRefresh(feeds, sender)
-    } finally {
-      _bulkRefreshing = false
-    }
+    const feeds = getDb().prepare(`
+      SELECT * FROM feeds
+      WHERE last_fetched_at IS NULL
+         OR datetime(last_fetched_at, '+' || COALESCE(refresh_interval, 30) || ' minutes') <= datetime('now')
+    `).all() as any[]
+    if (feeds.length === 0) return
+    await enqueue(feeds)
   })
 }
 
 export function notifyFeedsUpdated() {
   for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('feeds:updated')
+    if (!win.isDestroyed()) win.webContents.send('feeds:updated')
   }
 }
 
 export function notifyArticlesUpdated() {
   for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('articles:updated')
+    if (!win.isDestroyed()) win.webContents.send('articles:updated')
+  }
+}
+
+export function notifyRefreshDone() {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('feeds:refreshDone')
   }
 }

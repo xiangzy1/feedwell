@@ -1,61 +1,33 @@
 import { getDb } from '../db'
-import { fetchFeed } from './feed-fetcher'
-import { BrowserWindow } from 'electron'
+import { enqueue } from './refresh-queue'
 
-interface ScheduledFeed {
-  id: number
-  url: string
-  refresh_interval: number
-}
+const REFRESH_INTERVAL = 30 * 60 * 1000
 
-const timers = new Map<number, NodeJS.Timeout>()
+let globalTimer: NodeJS.Timeout | null = null
 let running = false
 
 export function startScheduler(): void {
   if (running) return
   running = true
-  scheduleAllFeeds()
+  scheduleNext()
 }
 
 export function stopScheduler(): void {
   running = false
-  for (const timer of timers.values()) {
-    clearTimeout(timer)
-  }
-  timers.clear()
-}
-
-function scheduleAllFeeds(): void {
-  const feeds = getDb().prepare('SELECT id, url, refresh_interval FROM feeds').all() as ScheduledFeed[]
-  for (const feed of feeds) {
-    scheduleFeed(feed)
+  if (globalTimer) {
+    clearTimeout(globalTimer)
+    globalTimer = null
   }
 }
 
-function scheduleFeed(feed: ScheduledFeed): void {
+function scheduleNext(): void {
   if (!running) return
-  const intervalMs = (feed.refresh_interval || 30) * 60 * 1000
-  const timer = setTimeout(async () => {
-    const result = await fetchFeed(feed.id, feed.url)
-    notifyWindows()
-    if (running) {
-      const updated = getDb().prepare('SELECT id, url, refresh_interval FROM feeds WHERE id = ?').get(feed.id) as ScheduledFeed | undefined
-      if (updated) scheduleFeed(updated)
+  globalTimer = setTimeout(async () => {
+    if (!running) return
+    const feeds = getDb().prepare('SELECT id, url FROM feeds').all() as Array<{ id: number; url: string }>
+    if (feeds.length > 0) {
+      await enqueue(feeds)
     }
-  }, intervalMs)
-  timers.set(feed.id, timer)
-}
-
-export function rescheduleFeed(feedId: number): void {
-  const existing = timers.get(feedId)
-  if (existing) clearTimeout(existing)
-  const feed = getDb().prepare('SELECT id, url, refresh_interval FROM feeds WHERE id = ?').get(feedId) as ScheduledFeed | undefined
-  if (feed && running) scheduleFeed(feed)
-}
-
-function notifyWindows(): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('feeds:updated')
-    win.webContents.send('articles:updated')
-  }
+    if (running) scheduleNext()
+  }, REFRESH_INTERVAL)
 }
