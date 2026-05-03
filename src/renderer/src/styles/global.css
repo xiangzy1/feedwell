@@ -100,3 +100,16 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
 
 /* Dialog overlay must be no-drag to be clickable */
 .dialog-overlay { -webkit-app-region: no-drag; }
+
+/* Resize handle */
+.resize-handle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  -webkit-app-region: no-drag;
+  transition: background 0.15s;
+}
+.resize-handle:hover {
+  background: var(--accent);
+}

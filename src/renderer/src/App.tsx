@@ -5,14 +5,18 @@ import ArticleView from './components/ArticleView/ArticleView'
 import AddFeedDialog from './components/Sidebar/AddFeedDialog'
 import SettingsDialog from './components/Settings/SettingsDialog'
 import StatsDialog from './components/Stats/StatsDialog'
+import ResizeHandle from './components/ResizeHandle'
 import { useArticles } from './hooks/useArticles'
 import { useFeeds } from './hooks/useFeeds'
+import { usePersistedWidth } from './hooks/usePersistedWidth'
 import { useShortcuts } from './hooks/useShortcuts'
 import { useThemeProvider, ThemeProvider } from './hooks/useTheme'
 import './styles/global.css'
 import './styles/stats.css'
 
 export default function App() {
+  const { handleResize: handleSidebarResize } = usePersistedWidth('feedwell-sidebar-width', '--sidebar-width', 220, 120, 500)
+  const { handleResize: handleListResize } = usePersistedWidth('feedwell-list-width', '--list-width', 300, 200, 600)
   const [selectedFeedId, setSelectedFeedId] = useState<number | null>(null)
   const [selectedFilter, setSelectedFilter] = useState<string | null>('all')
   const [showAddFeed, setShowAddFeed] = useState(false)
@@ -83,6 +87,7 @@ export default function App() {
           onShowSettings={() => setShowSettings(true)}
           onShowStats={() => setShowStats(true)}
         />
+        <ResizeHandle onResize={handleSidebarResize} />
         <ArticleList
           articles={articles}
           selectedId={selectedId}
@@ -90,6 +95,7 @@ export default function App() {
           onMarkAllRead={() => markAllRead(selectedFeedId || undefined)}
           filter={selectedFilter}
         />
+        <ResizeHandle onResize={handleListResize} />
         <ArticleView
           article={selectedArticle}
           onToggleStar={markStarred}
