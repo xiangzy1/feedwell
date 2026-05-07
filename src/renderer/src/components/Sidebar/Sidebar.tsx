@@ -109,6 +109,7 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
       onToggleBrowser={() => handleToggleBrowser(feed.id, feed.open_in_browser)}
       openInBrowser={feed.open_in_browser}
       feedUrl={feed.url}
+      onOpenFeedUrl={() => window.api.openExternal(feed.url)}
     />
   )
 

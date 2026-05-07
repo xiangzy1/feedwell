@@ -4,25 +4,59 @@ import { getDb } from '../db'
 export function registerStatsIpc(): void {
   ipcMain.handle('stats:getMonthly', (_event, feedId?: number, months?: number) => {
     const monthCount = months || 12
-    let query = `
+    const params: unknown[] = [`-${monthCount}`]
+
+    const fetchQuery = `
       SELECT
         strftime('%Y-%m', fetched_at) as month,
         COUNT(*) as total_fetches,
         SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
         SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as error_count,
-        SUM(articles_count) as articles_count,
         AVG(response_time) as avg_response_time
       FROM fetch_logs
       WHERE fetched_at >= datetime('now', ? || ' months')
+      ${feedId ? ' AND feed_id = ?' : ''}
+      GROUP BY strftime('%Y-%m', fetched_at)
     `
-    const params: unknown[] = [`-${monthCount}`]
-    if (feedId) {
-      query += ' AND feed_id = ?'
-      params.push(feedId)
-    }
-    query += " GROUP BY strftime('%Y-%m', fetched_at) ORDER BY month"
+    if (feedId) params.push(feedId)
 
-    return getDb().prepare(query).all(...params)
+    const articleQuery = `
+      SELECT
+        strftime('%Y-%m', published_at) as month,
+        COUNT(*) as articles_count
+      FROM articles
+      WHERE published_at IS NOT NULL
+        AND published_at >= datetime('now', ? || ' months')
+      ${feedId ? ' AND feed_id = ?' : ''}
+      GROUP BY strftime('%Y-%m', published_at)
+    `
+    const articleParams: unknown[] = [`-${monthCount}`]
+    if (feedId) articleParams.push(feedId)
+
+    const fetchStats = getDb().prepare(fetchQuery).all(...params) as Record<string, unknown>[]
+    const articleStats = getDb().prepare(articleQuery).all(...articleParams) as Record<string, unknown>[]
+
+    const fetchMap = new Map(fetchStats.map(r => [r.month as string, r]))
+    const articleMap = new Map(articleStats.map(r => [r.month as string, r.articles_count as number]))
+
+    const allMonths: string[] = []
+    const now = new Date()
+    for (let i = monthCount - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      allMonths.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+    }
+
+    return allMonths.map(month => {
+      const fs = fetchMap.get(month)
+      return {
+        month,
+        total_fetches: (fs?.total_fetches as number) || 0,
+        success_count: (fs?.success_count as number) || 0,
+        error_count: (fs?.error_count as number) || 0,
+        articles_count: articleMap.get(month) || 0,
+        avg_response_time: (fs?.avg_response_time as number) || 0,
+      }
+    })
   })
 
   ipcMain.handle('stats:getFeedHealth', () => {
@@ -42,7 +76,9 @@ export function registerStatsIpc(): void {
         (SELECT error_msg FROM fetch_logs WHERE feed_id = f.id AND status = 'error' ORDER BY fetched_at DESC LIMIT 1) as last_error,
         COALESCE(ac.cnt, 0) as articles_last_30_days,
         CASE
-          WHEN (SELECT COUNT(*) FROM fetch_logs WHERE feed_id = f.id AND status = 'error' AND fetched_at >= datetime('now', '-7 days')) >= 3 THEN 'failed'
+          WHEN (SELECT COUNT(*) FROM fetch_logs WHERE feed_id = f.id AND status = 'success' ORDER BY fetched_at DESC LIMIT 3) = 0
+            AND (SELECT COUNT(*) FROM fetch_logs WHERE feed_id = f.id ORDER BY fetched_at DESC LIMIT 3) >= 3
+          THEN 'failed'
           WHEN COALESCE(ac.cnt, 0) = 0 THEN 'inactive'
           ELSE 'healthy'
         END as health_status
@@ -56,12 +92,12 @@ export function registerStatsIpc(): void {
     const overview = getDb().prepare(`
       SELECT
         (SELECT COUNT(*) FROM feeds) as total_feeds,
-        (SELECT COUNT(*) FROM articles WHERE published_at >= datetime('now', '-30 days')) as articles_this_month,
-        (SELECT COUNT(DISTINCT feed_id) FROM articles WHERE published_at >= datetime('now', '-30 days')) as active_feeds,
-        (SELECT COUNT(*) FROM feeds WHERE id IN (
-          SELECT feed_id FROM fetch_logs WHERE status = 'error' AND fetched_at >= datetime('now', '-7 days')
-          GROUP BY feed_id HAVING COUNT(*) >= 3
-        )) as failed_feeds
+        (SELECT COUNT(*) FROM articles WHERE published_at IS NOT NULL AND strftime('%Y-%m', published_at) = strftime('%Y-%m', 'now')) as articles_this_month,
+        (SELECT COUNT(DISTINCT feed_id) FROM articles WHERE published_at IS NOT NULL AND strftime('%Y-%m', published_at) = strftime('%Y-%m', 'now')) as active_feeds,
+        (SELECT COUNT(*) FROM feeds WHERE
+          (SELECT COUNT(*) FROM fetch_logs WHERE feed_id = feeds.id AND status = 'success' ORDER BY fetched_at DESC LIMIT 3) = 0
+          AND (SELECT COUNT(*) FROM fetch_logs WHERE feed_id = feeds.id ORDER BY fetched_at DESC LIMIT 3) >= 3
+        ) as failed_feeds
     `).get()
 
     return { feeds, overview }

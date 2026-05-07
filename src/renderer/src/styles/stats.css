@@ -2,7 +2,7 @@
   background: var(--bg-surface);
   border-radius: 10px;
   width: 860px;
-  max-height: 80vh;
+  height: 80vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px var(--shadow-color);
@@ -68,6 +68,24 @@
 }
 .stats-toggle-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
+/* Status Select */
+.stats-status-select {
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.stats-status-select:focus { outline: none; border-color: var(--accent); }
+
+/* Sortable Columns */
+.stats-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.stats-sortable:hover { color: var(--accent); }
+.stats-sort-arrow { font-size: 10px; margin-left: 2px; opacity: 0.4; }
+.stats-sort-arrow.active { opacity: 1; }
+
 /* Chart */
 .stats-chart-bars { display: flex; align-items: flex-end; height: 100px; gap: 6px; }
 .stats-chart-group { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
@@ -81,6 +99,7 @@
 .stats-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); }
 .stats-table-row-clickable { cursor: pointer; }
 .stats-table-row-clickable:hover { background: var(--bg-hover); }
+.stats-table-empty { text-align: center; color: var(--text-secondary); padding: 24px 8px; font-size: 12px; }
 .stats-error-msg { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
 
 /* Badge */

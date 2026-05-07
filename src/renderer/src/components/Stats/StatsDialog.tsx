@@ -3,7 +3,6 @@ import { useStats } from '../../hooks/useStats'
 import OverviewCards from './OverviewCards'
 import MonthlyChart from './MonthlyChart'
 import HealthTable from './HealthTable'
-import AnomalyFilter from './AnomalyFilter'
 
 interface Props {
   onClose: () => void
@@ -24,7 +23,6 @@ export default function StatsDialog({ onClose, onSelectFeed }: Props) {
           <OverviewCards overview={overview} />
           <MonthlyChart data={monthly} />
           <HealthTable feeds={health} onSelectFeed={feedId => { onSelectFeed(feedId); onClose() }} />
-          <AnomalyFilter feeds={health} />
         </div>
       </div>
     </div>

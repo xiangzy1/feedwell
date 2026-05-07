@@ -1,7 +1,5 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
-import { createStatsWindow } from '../windows/stats'
-
 const stmtGet = () => getDb().prepare('SELECT value FROM settings WHERE key = ?')
 const stmtSet = () => getDb().prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
 
@@ -23,8 +21,5 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:get', (_event, key: string) => getSetting(key))
   ipcMain.handle('settings:set', (_event, key: string, value: unknown) => {
     setSetting(key, value)
-    if (key === 'openStats' && value === true) {
-      createStatsWindow()
-    }
   })
 }
