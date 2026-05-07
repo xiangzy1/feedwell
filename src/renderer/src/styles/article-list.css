@@ -41,7 +41,7 @@
   position: relative;
   display: flex;
   align-items: stretch;
-  padding: 0 14px 0 20px;
+  padding: 0 14px 0 30px;
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   transition: background 0.1s;
@@ -53,7 +53,7 @@
 .unread-dot {
   position: absolute;
   top: 12px;
-  left: 6px;
+  left: 16px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -107,8 +107,23 @@
 
 .article-row-meta {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
   margin-top: 4px;
   font-size: 12px;
   color: var(--text-secondary);
+  min-width: 0;
+}
+
+.article-row-feed {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.article-row-time {
+  flex-shrink: 0;
+  white-space: nowrap;
 }

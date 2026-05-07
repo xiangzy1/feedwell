@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ExternalLink, RefreshCw, Check } from 'lucide-react'
+import { Check, Compass } from 'lucide-react'
 
 interface Props {
   label: string
@@ -58,7 +58,7 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
         onContextMenu={handleContextMenu}
       >
         <span className="sidebar-item-label">{label}</span>
-        {openInBrowser ? <span className="sidebar-item-badge" title="Opens in browser"><ExternalLink size={10} /></span> : null}
+        {openInBrowser ? <span className="sidebar-item-badge" title="Opens in browser"><Compass size={10} /></span> : null}
         {count !== undefined && count > 0 && (
           <span className="sidebar-item-count">{count}</span>
         )}

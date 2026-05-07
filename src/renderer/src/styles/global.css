@@ -146,3 +146,14 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
 .sidebar-toggle:hover {
   background: var(--bg-hover);
 }
+
+ol, ul { padding-left: 1.5em; }
+
+blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid var(--accent);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 0 4px 4px 0;
+}

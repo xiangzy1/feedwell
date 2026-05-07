@@ -2,7 +2,8 @@ import { getDb } from '../db'
 import FeedParser from 'feedparser'
 import { request } from 'node:http'
 import { request as httpsRequest } from 'https'
-import { parse as parseUrl } from 'url'
+
+const USER_AGENT = 'Mozilla/5.0'
 
 export interface FetchResult {
   status: 'success' | 'error'
@@ -128,24 +129,10 @@ function logFetch(feedId: number, status: string, errorMsg: string | null, artic
   ).run(feedId, status, errorMsg, articlesCount, responseTime)
 }
 
-function httpGet(url: string, maxRedirects = 5): Promise<string> {
+function httpGet(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     httpGetRaw(url, (err, res) => {
       if (err) return reject(err)
-
-      // Handle redirects
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        if (maxRedirects <= 0) return reject(new Error('Too many redirects'))
-        let redirectUrl = res.headers.location
-        if (redirectUrl.startsWith('/')) {
-          const parsed = parseUrl(url)
-          redirectUrl = `${parsed.protocol}//${parsed.host}${redirectUrl}`
-        }
-        res.resume()
-        resolve(httpGet(redirectUrl, maxRedirects - 1))
-        return
-      }
-
       let data = ''
       res.on('data', (chunk: Buffer) => { data += chunk.toString() })
       res.on('end', () => resolve(data))
@@ -153,12 +140,35 @@ function httpGet(url: string, maxRedirects = 5): Promise<string> {
   })
 }
 
-function httpGetRaw(url: string, callback: (err: Error | null, res: any) => void): void {
-  const parsed = parseUrl(url)
-  const isHttps = parsed.protocol === 'https:'
+function httpGetRaw(url: string, callback: (err: Error | null, res: any) => void, maxRedirects = 5, originUrl = url): void {
+  const parsedUrl = new URL(url)
+  const isHttps = parsedUrl.protocol === 'https:'
   const reqFn = isHttps ? httpsRequest : request
-  const req = reqFn(url, (res: any) => callback(null, res))
-  req.on('error', (err: Error) => callback(err, null as any))
+  const options = {
+    hostname: parsedUrl.hostname,
+    port: parsedUrl.port || (isHttps ? 443 : 80),
+    path: parsedUrl.pathname + parsedUrl.search,
+    headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*' }
+  }
+  const req = reqFn(options, (res: any) => {
+    if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+      if (maxRedirects <= 0) {
+        return callback(new Error('Too many redirects'), null as any)
+      }
+      let redirectUrl = res.headers.location as string
+      if (redirectUrl.startsWith('/')) {
+        redirectUrl = `${parsedUrl.protocol}//${parsedUrl.host}${redirectUrl}`
+      } else if (!redirectUrl.startsWith('http')) {
+        redirectUrl = new URL(redirectUrl, url).href
+      }
+      res.resume() // drain the response body
+      return httpGetRaw(redirectUrl, callback, maxRedirects - 1, originUrl)
+    }
+    callback(null, res)
+  })
+  req.on('error', (err: Error) => {
+    callback(err, null as any)
+  })
   req.setTimeout(15000, () => { req.destroy(); callback(new Error('Request timeout'), null as any) })
   req.end()
 }
