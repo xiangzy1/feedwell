@@ -2,6 +2,7 @@ import { getDb } from '../db'
 import FeedParser from 'feedparser'
 import { request } from 'node:http'
 import { request as httpsRequest } from 'https'
+import { createGunzip } from 'node:zlib'
 
 const USER_AGENT = 'Mozilla/5.0'
 
@@ -76,7 +77,18 @@ function parseFeed(feedUrl: string): Promise<{ articles: FeedParser.Item[]; meta
       const articles: FeedParser.Item[] = []
       let meta: any
 
-      res.pipe(feedparser)
+      // Fix wrong Content-Type (some servers serve feeds as text/html)
+      if (res.headers['content-type']?.includes('text/html')) {
+        res.headers['content-type'] = 'application/xml; charset=UTF-8'
+      }
+
+      // Handle gzip-compressed responses even when not requested
+      const isGzip = res.headers['content-encoding'] === 'gzip'
+      if (isGzip) {
+        res.pipe(createGunzip()).pipe(feedparser)
+      } else {
+        res.pipe(feedparser)
+      }
 
       feedparser.on('error', (e: Error) => {
         clearTimeout(timeout)
@@ -133,9 +145,10 @@ function httpGet(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     httpGetRaw(url, (err, res) => {
       if (err) return reject(err)
+      const stream = res.headers['content-encoding'] === 'gzip' ? res.pipe(createGunzip()) : res
       let data = ''
-      res.on('data', (chunk: Buffer) => { data += chunk.toString() })
-      res.on('end', () => resolve(data))
+      stream.on('data', (chunk: Buffer) => { data += chunk.toString() })
+      stream.on('end', () => resolve(data))
     })
   })
 }

@@ -64,6 +64,9 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
       grouped[key].push(f)
       if (f.folder_id && f.folder_name) names[f.folder_id] = f.folder_name
     }
+    for (const key of Object.keys(grouped)) {
+      grouped[Number(key)].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }))
+    }
     return { groupedFeeds: grouped, folderNames: names }
   }, [feeds])
 
