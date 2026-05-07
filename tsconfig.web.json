@@ -12,5 +12,5 @@
     "target": "ESNext",
     "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/renderer/**/*", "src/renderer-stats/**/*"]
+  "include": ["src/renderer/**/*"]
 }

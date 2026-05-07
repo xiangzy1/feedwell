@@ -5,9 +5,9 @@
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build && vite build --config vite.stats.config.ts",
+    "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "package": "electron-vite build && vite build --config vite.stats.config.ts && electron-builder --publish never"
+    "package": "electron-vite build && electron-builder --publish never"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
