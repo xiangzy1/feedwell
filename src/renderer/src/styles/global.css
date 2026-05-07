@@ -65,7 +65,7 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
   height: 100vh;
   -webkit-app-region: drag;
   overflow: hidden;
-  padding-top: 28px;
+  position: relative;
 }
 
 .sidebar {
@@ -74,6 +74,14 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   -webkit-app-region: no-drag;
+  transition: width 0.2s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+.sidebar.collapsed {
+  width: 0;
+  border-right: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .article-list-col {
@@ -83,7 +91,6 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
   -webkit-app-region: no-drag;
   display: flex;
   flex-direction: column;
-  margin-top: -28px;
 }
 
 .article-view {
@@ -115,4 +122,27 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
 }
 .resize-handle:hover {
   background: var(--accent);
+}
+.resize-handle.hidden {
+  display: none;
+}
+
+/* Sidebar toggle button */
+.sidebar-toggle {
+  position: absolute;
+  left: 80px;
+  top: 5px;
+  z-index: 10;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  -webkit-app-region: no-drag;
+  line-height: 1;
+}
+.sidebar-toggle:hover {
+  background: var(--bg-hover);
 }

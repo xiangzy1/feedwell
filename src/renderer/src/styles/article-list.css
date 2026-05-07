@@ -23,6 +23,9 @@
   padding: 4px 10px;
   border-radius: 4px;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .toolbar-btn:hover {

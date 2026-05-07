@@ -13,8 +13,12 @@ import { useShortcuts } from './hooks/useShortcuts'
 import { SortOrder } from './components/ArticleList/ArticleList'
 import { useThemeProvider, ThemeProvider } from './hooks/useTheme'
 import { useReadingSettingsProvider, ReadingSettingsProvider } from './hooks/useReadingSettings'
+import { PanelLeftClose, PanelLeft } from 'lucide-react'
 import './styles/global.css'
 import './styles/stats.css'
+
+const SORT_STORAGE_KEY = 'feedwell-sort-order'
+const SIDEBAR_COLLAPSED_KEY = 'feedwell-sidebar-collapsed'
 
 export default function App() {
   const { handleResize: handleSidebarResize } = usePersistedWidth('feedwell-sidebar-width', '--sidebar-width', 220, 120, 500)
@@ -24,8 +28,24 @@ export default function App() {
   const [showAddFeed, setShowAddFeed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showStats, setShowStats] = useState(false)
-  const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const stored = localStorage.getItem(SORT_STORAGE_KEY)
+    return stored === 'oldest' ? 'oldest' : 'newest'
+  })
+  const handleSortOrderChange = useCallback((order: SortOrder) => {
+    setSortOrder(order)
+    localStorage.setItem(SORT_STORAGE_KEY, order)
+    window.api.settings.set(SORT_STORAGE_KEY, order)
+  }, [])
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true')
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next))
+      return next
+    })
+  }, [])
   const themeCtx = useThemeProvider()
   const readingCtx = useReadingSettingsProvider()
   const { feeds, reload: reloadFeeds } = useFeeds()
@@ -84,7 +104,11 @@ export default function App() {
     <ThemeProvider value={themeCtx}>
       <ReadingSettingsProvider value={readingCtx}>
       <div className="app">
+        <button className="sidebar-toggle" onClick={toggleSidebar}>
+          {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+        </button>
         <Sidebar
+          className={sidebarCollapsed ? 'collapsed' : undefined}
           selectedFeedId={selectedFeedId}
           selectedFilter={selectedFilter}
           activeFeedId={activeFeedId}
@@ -95,7 +119,7 @@ export default function App() {
           onShowSettings={() => setShowSettings(true)}
           onShowStats={() => setShowStats(true)}
         />
-        <ResizeHandle onResize={handleSidebarResize} />
+        <ResizeHandle className={sidebarCollapsed ? 'hidden' : undefined} onResize={handleSidebarResize} />
         <ArticleList
           sortedArticles={sortedArticles}
           selectedId={selectedId}
@@ -103,7 +127,7 @@ export default function App() {
           onMarkAllRead={() => markAllRead(selectedFeedId || undefined)}
           filter={selectedFilter}
           sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
+          onSortOrderChange={handleSortOrderChange}
         />
         <ResizeHandle onResize={handleListResize} />
         <ArticleView

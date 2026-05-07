@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { ExternalLink, RefreshCw, Check } from 'lucide-react'
 
 interface Props {
   label: string
@@ -57,12 +58,9 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
         onContextMenu={handleContextMenu}
       >
         <span className="sidebar-item-label">{label}</span>
-        {openInBrowser ? <span className="sidebar-item-badge" title="Opens in browser">↗</span> : null}
+        {openInBrowser ? <span className="sidebar-item-badge" title="Opens in browser"><ExternalLink size={10} /></span> : null}
         {count !== undefined && count > 0 && (
           <span className="sidebar-item-count">{count}</span>
-        )}
-        {onRefresh && (
-          <button className="sidebar-item-action" onClick={(e) => { e.stopPropagation(); onRefresh() }}>↻</button>
         )}
       </div>
 
@@ -81,7 +79,7 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
             )}
             {onToggleBrowser && (
               <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onToggleBrowser(); closeMenu() }}>
-                {openInBrowser ? '✓ Open in Browser' : 'Open in Browser'}
+                {openInBrowser ? <><Check size={13} style={{verticalAlign:'-2px'}} /> Open in Browser</> : 'Open in Browser'}
               </div>
             )}
             {feedUrl && (

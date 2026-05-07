@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Plus, RefreshCw, BarChart3, Settings, ChevronDown } from 'lucide-react'
 import SidebarItem from './SidebarItem'
 import '../../styles/sidebar.css'
 
@@ -14,6 +15,7 @@ interface Feed {
 }
 
 interface Props {
+  className?: string
   selectedFeedId: number | null
   selectedFilter: string | null
   activeFeedId: number | null
@@ -25,7 +27,7 @@ interface Props {
   onShowStats: () => void
 }
 
-export default function Sidebar({ selectedFeedId, selectedFilter, activeFeedId, refreshProgress, onSelectFeed, onSelectFilter, onShowAddFeed, onShowSettings, onShowStats }: Props) {
+export default function Sidebar({ className, selectedFeedId, selectedFilter, activeFeedId, refreshProgress, onSelectFeed, onSelectFilter, onShowAddFeed, onShowSettings, onShowStats }: Props) {
   const [feeds, setFeeds] = useState<Feed[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [collapsedFolders, setCollapsedFolders] = useState<Set<number>>(new Set())
@@ -111,7 +113,7 @@ export default function Sidebar({ selectedFeedId, selectedFilter, activeFeedId, 
     ? (refreshProgress.current / refreshProgress.total) * 100 : 0
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${className ? ` ${className}` : ''}`}>
       <div className="sidebar-section">
         <SidebarItem
           label="All"
@@ -140,7 +142,7 @@ export default function Sidebar({ selectedFeedId, selectedFilter, activeFeedId, 
                 className={`sidebar-folder-header ${effectivelyCollapsed.has(folderId) ? 'collapsed' : ''}`}
                 onClick={() => toggleFolder(folderId)}
               >
-                <span className="sidebar-folder-chevron">▾</span>
+                <span className="sidebar-folder-chevron"><ChevronDown size={10} /></span>
                 {folderNames[folderId] || 'Folder'}
               </div>
               {!effectivelyCollapsed.has(folderId) && folderFeeds.map(feed => renderFeedItem(feed))}
@@ -157,10 +159,10 @@ export default function Sidebar({ selectedFeedId, selectedFilter, activeFeedId, 
       )}
 
       <div className="sidebar-toolbar">
-        <button onClick={onShowAddFeed} title="Add Feed">+</button>
-        <button onClick={() => window.api.feeds.refresh()} title="Refresh All">↻</button>
-        <button onClick={onShowStats} title="Statistics">☰</button>
-        <button onClick={onShowSettings} title="Settings">⚙</button>
+        <button onClick={onShowAddFeed} title="Add Feed"><Plus size={15} /></button>
+        <button onClick={() => window.api.feeds.refresh()} title="Refresh All"><RefreshCw size={15} /></button>
+        <button onClick={onShowStats} title="Statistics"><BarChart3 size={15} /></button>
+        <button onClick={onShowSettings} title="Settings"><Settings size={15} /></button>
       </div>
     </aside>
   )

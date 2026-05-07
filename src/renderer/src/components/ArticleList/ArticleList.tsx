@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { Circle, CircleDot, ArrowUpDown, Check } from 'lucide-react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ArticleRow from './ArticleRow'
 import { Article } from '../../hooks/useArticles'
@@ -45,7 +46,7 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
             onClick={() => setUnreadOnly(v => !v)}
             title={unreadOnly ? 'Show all' : 'Show unread only'}
           >
-            {unreadOnly ? '◉ Unread' : '○ All'}
+            {unreadOnly ? <><CircleDot size={13} /> Unread</> : <><Circle size={13} /> All</>}
           </button>
         )}
         <button
@@ -53,11 +54,11 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
           onClick={() => onSortOrderChange(sortOrder === 'newest' ? 'oldest' : 'newest')}
           title={sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}
         >
-          {sortOrder === 'newest' ? '↕ Newest' : '↕ Oldest'}
+          <><ArrowUpDown size={13} /> {sortOrder === 'newest' ? 'Newest' : 'Oldest'}</>
         </button>
         {hasUnread && (
           <button className="toolbar-btn" onClick={onMarkAllRead} title="Mark all as read">
-            ✓ All read
+            <><Check size={13} /> All read</>
           </button>
         )}
       </div>

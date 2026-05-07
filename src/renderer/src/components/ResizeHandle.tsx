@@ -1,10 +1,11 @@
 import { useCallback, useRef } from 'react'
 
 interface Props {
+  className?: string
   onResize: (deltaX: number) => void
 }
 
-export default function ResizeHandle({ onResize }: Props) {
+export default function ResizeHandle({ className, onResize }: Props) {
   const onResizeRef = useRef(onResize)
   onResizeRef.current = onResize
   const lastXRef = useRef(0)
@@ -34,7 +35,7 @@ export default function ResizeHandle({ onResize }: Props) {
 
   return (
     <div
-      className="resize-handle"
+      className={`resize-handle${className ? ` ${className}` : ''}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useStats } from '../../hooks/useStats'
 import OverviewCards from './OverviewCards'
 import MonthlyChart from './MonthlyChart'
@@ -17,7 +18,7 @@ export default function StatsDialog({ onClose, onSelectFeed }: Props) {
       <div className="stats-dialog" onClick={e => e.stopPropagation()}>
         <div className="stats-dialog-header">
           <h3>Subscription Statistics</h3>
-          <button className="stats-dialog-close" onClick={onClose}>✕</button>
+          <button className="stats-dialog-close" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="stats-dialog-body">
           <OverviewCards overview={overview} />
