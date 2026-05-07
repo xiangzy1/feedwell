@@ -8,7 +8,7 @@ interface Props {
 
 export default function ArticleRow({ article, selected, onClick }: Props) {
   const timeStr = article.published_at
-    ? formatRelativeTime(new Date(article.published_at))
+    ? formatTime(new Date(article.published_at))
     : ''
 
   return (
@@ -28,16 +28,14 @@ export default function ArticleRow({ article, selected, onClick }: Props) {
   )
 }
 
-function formatRelativeTime(date: Date): string {
+function formatTime(date: Date): string {
   const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return 'now'
-  if (diffMin < 60) return `${diffMin}m`
-  const diffHr = Math.floor(diffMin / 60)
-  if (diffHr < 24) return `${diffHr}h`
-  const diffDay = Math.floor(diffHr / 24)
-  if (diffDay < 7) return `${diffDay}d`
+  const isToday = date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate()
+  if (isToday) {
+    return date.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
+  }
   const sameYear = date.getFullYear() === now.getFullYear()
   return date.toLocaleDateString('en', sameYear
     ? { month: 'short', day: 'numeric' }

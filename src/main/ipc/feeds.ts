@@ -40,6 +40,7 @@ export function registerFeedIpc(): void {
     getDb().prepare('DELETE FROM fetch_logs WHERE feed_id = ?').run(id)
     getDb().prepare('DELETE FROM feeds WHERE id = ?').run(id)
     notifyFeedsUpdated()
+    notifyArticlesUpdated()
   })
 
   ipcMain.handle('feeds:update', (_event, id: number, changes: Record<string, unknown>) => {

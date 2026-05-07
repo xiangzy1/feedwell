@@ -1,29 +1,44 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 
 interface Props {
   onResize: (deltaX: number) => void
 }
 
 export default function ResizeHandle({ onResize }: Props) {
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const onResizeRef = useRef(onResize)
+  onResizeRef.current = onResize
+  const lastXRef = useRef(0)
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
+    lastXRef.current = e.clientX
+  }, [])
 
-    const handleMouseMove = (e: MouseEvent) => {
-      onResize(e.movementX)
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+    const dx = e.clientX - lastXRef.current
+    lastXRef.current = e.clientX
+    if (dx !== 0) onResizeRef.current(dx)
+  }, [])
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
     }
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }, [])
 
-    const handleMouseUp = () => {
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }, [onResize])
-
-  return <div className="resize-handle" onMouseDown={handleMouseDown} />
+  return (
+    <div
+      className="resize-handle"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    />
+  )
 }

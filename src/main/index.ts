@@ -1,8 +1,8 @@
-import { app, BrowserWindow, Menu, ipcMain, nativeImage, nativeTheme, session, shell } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, nativeImage, nativeTheme, powerMonitor, session, shell } from 'electron'
 import { join } from 'path'
 import { initDatabase } from './db'
 import { getSetting, getSettingJson, setSetting } from './ipc/settings'
-import { startScheduler, stopScheduler } from './services/scheduler'
+import { startScheduler, stopScheduler, isRunning, onResume } from './services/scheduler'
 import { registerFeedIpc } from './ipc/feeds'
 import { registerArticleIpc } from './ipc/articles'
 import { registerFolderIpc } from './ipc/folders'
@@ -32,19 +32,29 @@ app.whenReady().then(() => {
   createMainWindow()
   startScheduler()
 
+  powerMonitor.on('resume', onResume)
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow()
+    }
+    if (!isRunning()) {
+      startScheduler()
     }
   })
 })
 
 app.on('window-all-closed', () => {
-  stopScheduler()
   isColdStart = false
   if (process.platform !== 'darwin') {
+    stopScheduler()
     app.quit()
   }
+  // macOS: keep scheduler running for background refresh
+})
+
+app.on('before-quit', () => {
+  stopScheduler()
 })
 
 function setupMenu(win: BrowserWindow) {

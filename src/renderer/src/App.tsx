@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import Sidebar from './components/Sidebar/Sidebar'
 import ArticleList from './components/ArticleList/ArticleList'
 import ArticleView from './components/ArticleView/ArticleView'
@@ -10,6 +10,7 @@ import { useArticles } from './hooks/useArticles'
 import { useFeeds } from './hooks/useFeeds'
 import { usePersistedWidth } from './hooks/usePersistedWidth'
 import { useShortcuts } from './hooks/useShortcuts'
+import { SortOrder } from './components/ArticleList/ArticleList'
 import { useThemeProvider, ThemeProvider } from './hooks/useTheme'
 import './styles/global.css'
 import './styles/stats.css'
@@ -22,6 +23,7 @@ export default function App() {
   const [showAddFeed, setShowAddFeed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
   const themeCtx = useThemeProvider()
   const { feeds, reload: reloadFeeds } = useFeeds()
@@ -31,9 +33,12 @@ export default function App() {
   })
   const selectedArticle = articles.find(a => a.id === selectedId) || null
   const activeFeedId = selectedArticle?.feed_id ?? selectedFeedId
+  const sortedArticles = useMemo(() => (
+    sortOrder === 'newest' ? articles : [...articles].reverse()
+  ), [articles, sortOrder])
 
   useShortcuts({
-    articles,
+    articles: sortedArticles,
     selectedId,
     onSelectArticle: setSelectedId,
     onMarkRead: markRead,
@@ -89,11 +94,13 @@ export default function App() {
         />
         <ResizeHandle onResize={handleSidebarResize} />
         <ArticleList
-          articles={articles}
+          sortedArticles={sortedArticles}
           selectedId={selectedId}
           onSelect={(id) => { setSelectedId(id); markRead(id) }}
           onMarkAllRead={() => markAllRead(selectedFeedId || undefined)}
           filter={selectedFilter}
+          sortOrder={sortOrder}
+          onSortOrderChange={setSortOrder}
         />
         <ResizeHandle onResize={handleListResize} />
         <ArticleView

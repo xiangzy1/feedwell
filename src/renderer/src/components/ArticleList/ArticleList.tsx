@@ -4,27 +4,27 @@ import ArticleRow from './ArticleRow'
 import { Article } from '../../hooks/useArticles'
 import '../../styles/article-list.css'
 
-type SortOrder = 'newest' | 'oldest'
+export type SortOrder = 'newest' | 'oldest'
 
 interface Props {
-  articles: Article[]
+  sortedArticles: Article[]
   selectedId: number | null
   onSelect: (id: number) => void
   onMarkAllRead: () => void
   filter: string | null
+  sortOrder: SortOrder
+  onSortOrderChange: (order: SortOrder) => void
 }
 
-export default function ArticleList({ articles, selectedId, onSelect, onMarkAllRead, filter }: Props) {
-  const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
+export default function ArticleList({ sortedArticles, selectedId, onSelect, onMarkAllRead, filter, sortOrder, onSortOrderChange }: Props) {
   const [unreadOnly, setUnreadOnly] = useState(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
 
   const sorted = useMemo(() => {
-    const filtered = unreadOnly ? articles.filter(a => !a.read) : articles
-    return sortOrder === 'newest' ? filtered : filtered.reverse()
-  }, [articles, unreadOnly, sortOrder])
+    return unreadOnly ? sortedArticles.filter(a => !a.read) : sortedArticles
+  }, [sortedArticles, unreadOnly])
 
-  const hasUnread = articles.some(a => !a.read)
+  const hasUnread = sortedArticles.some(a => !a.read)
 
   useEffect(() => {
     if (selectedId == null || !virtuosoRef.current) return
@@ -48,7 +48,7 @@ export default function ArticleList({ articles, selectedId, onSelect, onMarkAllR
         )}
         <button
           className="toolbar-btn"
-          onClick={() => setSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
+          onClick={() => onSortOrderChange(sortOrder === 'newest' ? 'oldest' : 'newest')}
           title={sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}
         >
           {sortOrder === 'newest' ? '↕ Newest' : '↕ Oldest'}
