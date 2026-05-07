@@ -22,9 +22,11 @@ export async function fetchFeed(feedId: number, feedUrl: string): Promise<FetchR
     let articlesCount = 0
     if (feedId > 0) {
       articlesCount = saveArticles(feedId, articles)
+      const rawFavicon = meta.favicon || (meta.image && meta.image.url) || null
+      const faviconUrl = rawFavicon && /^https?:\/\//.test(rawFavicon) ? rawFavicon : null
       getDb().prepare(
-        "UPDATE feeds SET title = ?, site_url = COALESCE(?, site_url), last_fetched_at = datetime('now') WHERE id = ?"
-      ).run(meta.title || '', meta.link || '', feedId)
+        "UPDATE feeds SET title = ?, site_url = COALESCE(?, site_url), favicon_url = COALESCE(?, favicon_url), last_fetched_at = datetime('now') WHERE id = ?"
+      ).run(meta.title || '', meta.link || '', faviconUrl, feedId)
       logFetch(feedId, 'success', null, articlesCount, responseTime)
     }
     return { status: 'success', articlesCount, responseTime, feedTitle: meta.title, feedSiteUrl: meta.link }

@@ -32,7 +32,9 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
     if (idx >= 0) {
       virtuosoRef.current.scrollIntoView({ index: idx, behavior: 'smooth', align: 'nearest' })
     }
-  }, [selectedId, sorted])
+    // Only scroll on explicit selection, not when sorted list changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId])
 
   return (
     <div className="article-list-col">

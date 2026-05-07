@@ -10,6 +10,7 @@ interface Feed {
   folder_name: string | null
   unread_count: number
   open_in_browser: boolean
+  favicon_url: string | null
 }
 
 interface Props {

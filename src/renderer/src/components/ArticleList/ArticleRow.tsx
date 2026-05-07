@@ -1,4 +1,5 @@
 import { Article } from '../../hooks/useArticles'
+import FeedIcon from './FeedIcon'
 
 interface Props {
   article: Article
@@ -16,13 +17,16 @@ export default function ArticleRow({ article, selected, onClick }: Props) {
       className={`article-row ${selected ? 'selected' : ''} ${article.read ? 'read' : 'unread'}`}
       onClick={onClick}
     >
-      <div className="article-row-title">
-        <span className={`unread-dot${article.read ? ' read' : ''}`} />
-        <span className="article-row-title-text">{article.title}</span>
-      </div>
-      <div className="article-row-meta">
-        <span className="article-row-feed">{article.feed_title}</span>
-        <span className="article-row-time">{timeStr}</span>
+      <span className={`unread-dot${article.read ? ' read' : ''}`} />
+      <FeedIcon url={article.favicon_url} title={article.feed_title} />
+      <div className="article-row-content">
+        <div className="article-row-title">
+          <span className="article-row-title-text">{article.title}</span>
+        </div>
+        <div className="article-row-meta">
+          <span className="article-row-feed">{article.feed_title}</span>
+          <span className="article-row-time">{timeStr}</span>
+        </div>
       </div>
     </div>
   )

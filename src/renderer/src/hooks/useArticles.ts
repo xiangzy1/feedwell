@@ -13,6 +13,7 @@ export interface Article {
   published_at: string | null
   fetched_at: string
   feed_title: string
+  favicon_url: string | null
 }
 
 interface Props {

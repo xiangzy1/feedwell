@@ -8,6 +8,7 @@ export interface Feed {
   unread_count: number
   open_in_browser: boolean
   refresh_interval: number
+  favicon_url: string | null
 }
 
 export function useFeeds() {
