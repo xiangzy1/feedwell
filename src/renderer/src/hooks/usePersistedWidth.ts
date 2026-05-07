@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-
-const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
+import { clamp } from '../utils/clamp'
 
 export function usePersistedWidth(storageKey: string, cssVar: string, defaultWidth: number, min: number, max: number) {
   const [width, setWidth] = useState(() => {

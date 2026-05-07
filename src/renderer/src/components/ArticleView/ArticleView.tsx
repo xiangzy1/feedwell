@@ -3,6 +3,7 @@ import ArticleHeader from './ArticleHeader'
 import ArticleViewTitlebar from './ArticleViewTitlebar'
 import { Article } from '../../hooks/useArticles'
 import { Feed } from '../../hooks/useFeeds'
+import { hljs } from '../../utils/highlight'
 import '../../styles/article-view.css'
 
 interface Props {
@@ -20,6 +21,13 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
   useEffect(() => {
     contentRef.current?.scrollTo(0, 0)
   }, [article?.id])
+
+  useEffect(() => {
+    if (!contentRef.current) return
+    contentRef.current.querySelectorAll('pre code:not(.hljs)').forEach((block) => {
+      hljs.highlightElement(block as HTMLElement)
+    })
+  }, [article?.id, article?.content])
 
   const titlebar = (
     <ArticleViewTitlebar

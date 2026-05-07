@@ -12,6 +12,7 @@ import { usePersistedWidth } from './hooks/usePersistedWidth'
 import { useShortcuts } from './hooks/useShortcuts'
 import { SortOrder } from './components/ArticleList/ArticleList'
 import { useThemeProvider, ThemeProvider } from './hooks/useTheme'
+import { useReadingSettingsProvider, ReadingSettingsProvider } from './hooks/useReadingSettings'
 import './styles/global.css'
 import './styles/stats.css'
 
@@ -26,6 +27,7 @@ export default function App() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
   const themeCtx = useThemeProvider()
+  const readingCtx = useReadingSettingsProvider()
   const { feeds, reload: reloadFeeds } = useFeeds()
   const { articles, selectedId, setSelectedId, markRead, markStarred, markAllRead } = useArticles({
     feedId: selectedFeedId,
@@ -80,6 +82,7 @@ export default function App() {
 
   return (
     <ThemeProvider value={themeCtx}>
+      <ReadingSettingsProvider value={readingCtx}>
       <div className="app">
         <Sidebar
           selectedFeedId={selectedFeedId}
@@ -115,6 +118,7 @@ export default function App() {
         {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
         {showStats && <StatsDialog onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />}
       </div>
+      </ReadingSettingsProvider>
     </ThemeProvider>
   )
 }

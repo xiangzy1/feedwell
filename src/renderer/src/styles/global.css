@@ -25,6 +25,9 @@
   --badge-failed-text: #c62828;
   --badge-inactive-bg: #fff3e0;
   --badge-inactive-text: #e65100;
+  --article-font-size: 15px;
+  --article-line-height: 1.8;
+  --article-paragraph-gap: 1em;
 }
 
 [data-theme="dark"] {

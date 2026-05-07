@@ -37,7 +37,6 @@ export function useArticles({ feedId, filter }: Props) {
 
   useEffect(() => {
     loadArticles()
-    setSelectedId(null)
   }, [loadArticles])
 
   useEffect(() => {
