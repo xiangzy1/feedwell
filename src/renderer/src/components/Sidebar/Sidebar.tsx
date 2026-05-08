@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, RefreshCw, BarChart3, Settings, ChevronDown } from 'lucide-react'
 import SidebarItem from './SidebarItem'
+import MoveToFolderDialog from './MoveToFolderDialog'
 import '../../styles/sidebar.css'
 
 interface Feed {
@@ -31,6 +32,7 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
   const [feeds, setFeeds] = useState<Feed[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [collapsedFolders, setCollapsedFolders] = useState<Set<number>>(new Set())
+  const [moveToFolderFeed, setMoveToFolderFeed] = useState<Feed | null>(null)
 
   const loadFeeds = useCallback(async () => {
     const feeds = await window.api.feeds.list()
@@ -52,6 +54,11 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
   const handleToggleBrowser = async (feedId: number, currentValue: boolean) => {
     const newVal = currentValue ? 0 : 1
     await window.api.feeds.update(feedId, { open_in_browser: newVal })
+    loadFeeds()
+  }
+
+  const handleMoveToFolder = async (feedId: number, folderId: number | null) => {
+    await window.api.feeds.update(feedId, { folder_id: folderId })
     loadFeeds()
   }
 
@@ -110,6 +117,7 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
       openInBrowser={feed.open_in_browser}
       feedUrl={feed.url}
       onOpenFeedUrl={() => window.api.openExternal(feed.url)}
+      onMoveToFolder={() => setMoveToFolderFeed(feed)}
     />
   )
 
@@ -168,6 +176,15 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
         <button onClick={onShowStats} title="Statistics"><BarChart3 size={15} /></button>
         <button onClick={onShowSettings} title="Settings"><Settings size={15} /></button>
       </div>
+
+      {moveToFolderFeed && (
+        <MoveToFolderDialog
+          feedId={moveToFolderFeed.id}
+          currentFolderId={moveToFolderFeed.folder_id}
+          onMove={handleMoveToFolder}
+          onClose={() => setMoveToFolderFeed(null)}
+        />
+      )}
     </aside>
   )
 }

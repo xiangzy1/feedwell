@@ -13,6 +13,8 @@ import { registerStatsIpc } from './ipc/stats'
 const isDev = !app.isPackaged
 let isColdStart = true
 
+app.setName('Feedwell')
+
 const iconPath = join(__dirname, '../../resources/icon.png')
 
 app.whenReady().then(() => {

@@ -91,8 +91,8 @@ export default function App() {
     return () => { unsubProgress(); unsubDone() }
   }, [])
 
-  const handleAddFeed = useCallback(async (url: string) => {
-    const result = await window.api.feeds.add(url)
+  const handleAddFeed = useCallback(async (url: string, folderId?: number) => {
+    const result = await window.api.feeds.add(url, folderId)
     if (result && result.error) {
       throw new Error(result.error)
     }

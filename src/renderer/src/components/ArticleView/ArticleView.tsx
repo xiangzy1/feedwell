@@ -29,6 +29,20 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     })
   }, [article?.id, article?.content])
 
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const handler = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a')
+      if (anchor?.href) {
+        e.preventDefault()
+        window.api.openExternal(anchor.href)
+      }
+    }
+    el.addEventListener('click', handler)
+    return () => el.removeEventListener('click', handler)
+  }, [article?.id, article?.content])
+
   const titlebar = (
     <ArticleViewTitlebar
       article={article}

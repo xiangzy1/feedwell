@@ -32,6 +32,7 @@ export function registerFeedIpc(): void {
 
     await fetchFeed(info.lastInsertRowid as number, feedUrl)
     notifyFeedsUpdated()
+    notifyArticlesUpdated()
     return { id: info.lastInsertRowid }
   })
 

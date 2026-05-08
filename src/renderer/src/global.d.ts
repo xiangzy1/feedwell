@@ -18,7 +18,8 @@ declare global {
         markAllRead: (feedId?: number) => Promise<void>
       }
       folders: {
-        create: (name: string) => Promise<void>
+        list: () => Promise<{ id: number; name: string; sort_order: number }[]>
+        create: (name: string) => Promise<{ id: number }>
         reorder: (orderedIds: number[]) => Promise<void>
       }
       opml: {

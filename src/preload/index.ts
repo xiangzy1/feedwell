@@ -22,6 +22,7 @@ const api = {
     markAllRead: (feedId?: number) => ipcRenderer.invoke('articles:markAllRead', feedId)
   },
   folders: {
+    list: () => ipcRenderer.invoke('folders:list'),
     create: (name: string) => ipcRenderer.invoke('folders:create', name),
     reorder: (orderedIds: number[]) => ipcRenderer.invoke('folders:reorder', orderedIds)
   },

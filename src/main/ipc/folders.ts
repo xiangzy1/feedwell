@@ -2,6 +2,10 @@ import { ipcMain } from 'electron'
 import { getDb } from '../db'
 
 export function registerFolderIpc(): void {
+  ipcMain.handle('folders:list', () => {
+    return getDb().prepare('SELECT * FROM folders ORDER BY sort_order, name').all()
+  })
+
   ipcMain.handle('folders:create', (_event, name: string) => {
     const maxOrder = getDb().prepare('SELECT MAX(sort_order) as max FROM folders').get() as { max: number | null }
     const info = getDb().prepare('INSERT INTO folders (name, sort_order) VALUES (?, ?)').run(name, (maxOrder.max ?? -1) + 1)

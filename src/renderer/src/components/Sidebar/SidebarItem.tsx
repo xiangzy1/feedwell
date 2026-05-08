@@ -14,15 +14,16 @@ interface Props {
   openInBrowser?: boolean
   feedUrl?: string
   onOpenFeedUrl?: () => void
+  onMoveToFolder?: () => void
 }
 
-export default function SidebarItem({ label, count, selected, active, feedId, onClick, onDelete, onRefresh, onToggleBrowser, openInBrowser, feedUrl, onOpenFeedUrl }: Props) {
+export default function SidebarItem({ label, count, selected, active, feedId, onClick, onDelete, onRefresh, onToggleBrowser, openInBrowser, feedUrl, onOpenFeedUrl, onMoveToFolder }: Props) {
   const [showMenu, setShowMenu] = useState(false)
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
   const clickPos = useRef({ x: 0, y: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const hasMenu = !!(onDelete || onRefresh || onToggleBrowser || feedUrl || onOpenFeedUrl)
+  const hasMenu = !!(onDelete || onRefresh || onToggleBrowser || feedUrl || onOpenFeedUrl || onMoveToFolder)
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -91,6 +92,11 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
             {feedUrl && (
               <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(feedUrl); closeMenu() }}>
                 Copy Feed URL
+              </div>
+            )}
+            {onMoveToFolder && (
+              <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onMoveToFolder(); closeMenu() }}>
+                Move to Folder...
               </div>
             )}
             {onDelete && (

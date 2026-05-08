@@ -155,6 +155,7 @@
   white-space: nowrap;
 }
 .context-menu-item:hover { background: var(--accent); color: white; }
+.context-menu-item.active { background: var(--bg-selected); font-weight: 600; }
 .context-menu-item.danger { color: var(--danger); }
 .context-menu-item.danger:hover { background: var(--danger); color: white; }
 
@@ -188,6 +189,12 @@
   outline: none;
 }
 .dialog-input:focus { border-color: var(--accent); }
+
+select.dialog-input {
+  appearance: none;
+  background: var(--bg-surface);
+  cursor: pointer;
+}
 
 .dialog-error { color: var(--danger); font-size: 12px; margin-top: 6px; }
 
