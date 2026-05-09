@@ -17,6 +17,15 @@ app.setName('Feedwell')
 
 const iconPath = join(__dirname, '../../resources/icon.png')
 
+app.on('web-contents-created', (_event, contents) => {
+  if (contents.getType() === 'webview') {
+    contents.setWindowOpenHandler(({ url }) => {
+      shell.openExternal(url)
+      return { action: 'deny' }
+    })
+  }
+})
+
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && isDev) {
     app.dock.setIcon(nativeImage.createFromPath(iconPath))

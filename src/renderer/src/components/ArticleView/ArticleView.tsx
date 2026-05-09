@@ -163,15 +163,30 @@ function WebviewView({ url }: { url: string }) {
       setLoading(false)
       setError({ code: e.errorCode, desc: e.errorDescription })
     }
+    const onDomReady = () => {
+      // Inject a click interceptor as fallback: intercept target="_blank" link
+      // clicks and use window.open() which triggers setWindowOpenHandler in main
+      el.executeJavaScript(`
+        document.addEventListener('click', (e) => {
+          const a = e.target.closest('a');
+          if (a && a.href && a.target === '_blank') {
+            e.preventDefault();
+            window.open(a.href);
+          }
+        }, true);
+      `)
+    }
 
     el.addEventListener('did-start-loading', onStart)
     el.addEventListener('did-stop-loading', onStop)
     el.addEventListener('did-fail-load', onFail)
+    el.addEventListener('dom-ready', onDomReady)
 
     return () => {
       el.removeEventListener('did-start-loading', onStart)
       el.removeEventListener('did-stop-loading', onStop)
       el.removeEventListener('did-fail-load', onFail)
+      el.removeEventListener('dom-ready', onDomReady)
     }
   }, [])
 
@@ -183,7 +198,7 @@ function WebviewView({ url }: { url: string }) {
 
   return (
     <>
-      <webview ref={refCallback} src={url} className="article-webview" />
+      <webview ref={refCallback} src={url} className="article-webview" allowpopups="" />
       {loading && (
         <div className="webview-overlay webview-loading">
           <div className="webview-spinner" />
