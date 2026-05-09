@@ -17,17 +17,30 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
   const feed = article ? feeds.find(f => f.id === article.feed_id) : undefined
   const useWebview = feed?.open_in_browser && article?.url
   const contentRef = useRef<HTMLDivElement>(null)
+  const [processedHtml, setProcessedHtml] = useState('')
 
   useEffect(() => {
     contentRef.current?.scrollTo(0, 0)
   }, [article?.id])
 
   useEffect(() => {
-    if (!contentRef.current) return
-    contentRef.current.querySelectorAll('pre code:not(.hljs)').forEach((block) => {
+    const raw = article?.content || article?.summary || ''
+    if (!raw) {
+      setProcessedHtml('')
+      return
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    processMermaidInHtml(raw, isDark).then(setProcessedHtml)
+  }, [article?.id, article?.content])
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    el.querySelectorAll('pre code:not(.hljs)').forEach((block) => {
       hljs.highlightElement(block as HTMLElement)
     })
-  }, [article?.id, article?.content])
+  }, [processedHtml])
 
   useEffect(() => {
     const el = contentRef.current
@@ -41,7 +54,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     }
     el.addEventListener('click', handler)
     return () => el.removeEventListener('click', handler)
-  }, [article?.id, article?.content])
+  }, [processedHtml])
 
   const titlebar = (
     <ArticleViewTitlebar
@@ -77,10 +90,53 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
       <div
         ref={contentRef}
         className="article-content"
-        dangerouslySetInnerHTML={{ __html: article.content || article.summary || '' }}
+        dangerouslySetInnerHTML={{ __html: processedHtml }}
       />
     </div>
   )
+}
+
+async function processMermaidInHtml(html: string, isDark: boolean): Promise<string> {
+  const mermaidBlocks: { fullMatch: string; code: string }[] = []
+
+  const replaced = html.replace(
+    /<pre[^>]*><code[^>]*class="[^"]*language-mermaid[^"]*"[^>]*>([\s\S]*?)<\/code><\/pre>/gi,
+    (fullMatch, encodedContent) => {
+      const placeholder = `<!--MERMAID_PLACEHOLDER_${mermaidBlocks.length}-->`
+      const textContent = decodeHtmlEntities(encodedContent)
+      mermaidBlocks.push({ fullMatch, code: textContent })
+      return placeholder
+    }
+  )
+
+  if (mermaidBlocks.length === 0) return html
+
+  const mermaid = await import('mermaid')
+  mermaid.default.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' })
+
+  let result = replaced
+  for (let i = 0; i < mermaidBlocks.length; i++) {
+    const { code } = mermaidBlocks[i]
+    const placeholder = `<!--MERMAID_PLACEHOLDER_${i}-->`
+    try {
+      const { svg } = await mermaid.default.render(`mermaid-${i}-${Date.now()}`, code)
+      result = result.replace(placeholder, `<div class="mermaid-diagram">${svg}</div>`)
+    } catch {
+      result = result.replace(placeholder, `<pre class="mermaid-error"><code>${escapeHtml(code)}</code></pre>`)
+    }
+  }
+
+  return result
+}
+
+function decodeHtmlEntities(str: string): string {
+  const ta = document.createElement('textarea')
+  ta.innerHTML = str
+  return ta.value
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function WebviewView({ url }: { url: string }) {

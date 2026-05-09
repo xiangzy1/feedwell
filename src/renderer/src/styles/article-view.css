@@ -179,6 +179,9 @@
 .article-content code { overflow-wrap: break-word; background: var(--bg-secondary); padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
 .article-content pre code { background: transparent; padding: 0; font-size: 0.85em; line-height: 1.6; }
 .article-content pre code.hljs { background: transparent; }
+.article-content .mermaid-diagram { margin: 1em 0; text-align: center; overflow-x: auto; }
+.article-content .mermaid-diagram svg { max-width: 100%; height: auto; }
+.article-content .mermaid-error { color: var(--error-text, #b31d28); }
 
 /* Light theme token colors */
 .article-content .hljs-keyword,
