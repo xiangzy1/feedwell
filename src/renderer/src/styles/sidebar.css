@@ -187,6 +187,8 @@
   border-radius: 4px;
   font-size: 13px;
   outline: none;
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
 .dialog-input:focus { border-color: var(--accent); }
 
@@ -253,4 +255,4 @@ select.dialog-input {
 }
 .btn-primary { background: var(--accent); color: white; }
 .btn-primary:disabled { opacity: 0.5; }
-.btn-secondary { background: var(--bg-secondary); }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
