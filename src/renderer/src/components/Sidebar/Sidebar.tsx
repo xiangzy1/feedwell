@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, RefreshCw, BarChart3, Settings, ChevronDown } from 'lucide-react'
 import SidebarItem from './SidebarItem'
 import MoveToFolderDialog from './MoveToFolderDialog'
+import WebviewMaxWidthDialog from './WebviewMaxWidthDialog'
 import '../../styles/sidebar.css'
 
 interface Feed {
@@ -13,6 +14,7 @@ interface Feed {
   unread_count: number
   open_in_browser: boolean
   favicon_url: string | null
+  webview_max_width: number | null
 }
 
 interface Props {
@@ -33,6 +35,7 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
   const [unreadCount, setUnreadCount] = useState(0)
   const [collapsedFolders, setCollapsedFolders] = useState<Set<number>>(new Set())
   const [moveToFolderFeed, setMoveToFolderFeed] = useState<Feed | null>(null)
+  const [webviewMaxWidthFeed, setWebviewMaxWidthFeed] = useState<Feed | null>(null)
 
   const loadFeeds = useCallback(async () => {
     const feeds = await window.api.feeds.list()
@@ -60,6 +63,11 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
   const handleMoveToFolder = async (feedId: number, folderId: number | null) => {
     await window.api.feeds.update(feedId, { folder_id: folderId })
     loadFeeds()
+  }
+
+  const handleSetWebviewMaxWidth = async (feedId: number, width: number | null) => {
+    await window.api.feeds.update(feedId, { webview_max_width: width })
+    await loadFeeds()
   }
 
   const { groupedFeeds, folderNames } = useMemo(() => {
@@ -118,6 +126,7 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
       feedUrl={feed.url}
       onOpenFeedUrl={() => window.api.openExternal(feed.url)}
       onMoveToFolder={() => setMoveToFolderFeed(feed)}
+      onSetWebviewMaxWidth={() => setWebviewMaxWidthFeed(feed)}
     />
   )
 
@@ -146,6 +155,7 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
       </div>
 
       <div className="sidebar-section sidebar-feeds">
+        {ungrouped.map(feed => renderFeedItem(feed))}
         {folderIds.map(folderId => {
           const folderFeeds = groupedFeeds[folderId] || []
           return (
@@ -161,7 +171,6 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
             </div>
           )
         })}
-        {ungrouped.map(feed => renderFeedItem(feed))}
       </div>
 
       {refreshProgress && (
@@ -183,6 +192,14 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
           currentFolderId={moveToFolderFeed.folder_id}
           onMove={handleMoveToFolder}
           onClose={() => setMoveToFolderFeed(null)}
+        />
+      )}
+      {webviewMaxWidthFeed && (
+        <WebviewMaxWidthDialog
+          feedId={webviewMaxWidthFeed.id}
+          currentMaxWidth={webviewMaxWidthFeed.webview_max_width}
+          onSet={handleSetWebviewMaxWidth}
+          onClose={() => setWebviewMaxWidthFeed(null)}
         />
       )}
     </aside>

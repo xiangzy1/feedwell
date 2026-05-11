@@ -22,7 +22,7 @@ export function registerFeedIpc(): void {
     }
 
     const info = getDb().prepare(
-      'INSERT INTO feeds (title, url, site_url, folder_id) VALUES (?, ?, ?, ?)'
+      'INSERT INTO feeds (title, url, site_url, folder_id, open_in_browser) VALUES (?, ?, ?, ?, 1)'
     ).run(
       discoveredTitle || tempResult.feedTitle || feedUrl,
       feedUrl,
@@ -45,7 +45,7 @@ export function registerFeedIpc(): void {
   })
 
   ipcMain.handle('feeds:update', (_event, id: number, changes: Record<string, unknown>) => {
-    const allowed = ['title', 'url', 'folder_id', 'open_in_browser', 'refresh_interval', 'favicon_url']
+    const allowed = ['title', 'url', 'folder_id', 'open_in_browser', 'refresh_interval', 'favicon_url', 'webview_max_width']
     const sets: string[] = []
     const values: unknown[] = []
     for (const key of allowed) {

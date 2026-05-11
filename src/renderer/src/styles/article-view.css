@@ -91,6 +91,41 @@
   position: relative;
 }
 
+.webview-scroll-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.webview-width-constraint {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  margin: 0 auto;
+}
+
+.webview-scrollbar-track {
+  width: 14px;
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.webview-scrollbar-thumb {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border-radius: 4px;
+  background: rgba(128, 128, 128, 0.35);
+  cursor: grab;
+  transition: background 0.15s;
+}
+
+.webview-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.55);
+}
+
 .webview-overlay {
   position: absolute;
   inset: 0;

@@ -9,6 +9,7 @@ export interface Feed {
   open_in_browser: boolean
   refresh_interval: number
   favicon_url: string | null
+  webview_max_width: number | null
 }
 
 export function useFeeds() {

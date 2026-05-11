@@ -15,15 +15,16 @@ interface Props {
   feedUrl?: string
   onOpenFeedUrl?: () => void
   onMoveToFolder?: () => void
+  onSetWebviewMaxWidth?: () => void
 }
 
-export default function SidebarItem({ label, count, selected, active, feedId, onClick, onDelete, onRefresh, onToggleBrowser, openInBrowser, feedUrl, onOpenFeedUrl, onMoveToFolder }: Props) {
+export default function SidebarItem({ label, count, selected, active, feedId, onClick, onDelete, onRefresh, onToggleBrowser, openInBrowser, feedUrl, onOpenFeedUrl, onMoveToFolder, onSetWebviewMaxWidth }: Props) {
   const [showMenu, setShowMenu] = useState(false)
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
   const clickPos = useRef({ x: 0, y: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const hasMenu = !!(onDelete || onRefresh || onToggleBrowser || feedUrl || onOpenFeedUrl || onMoveToFolder)
+  const hasMenu = !!(onDelete || onRefresh || onToggleBrowser || feedUrl || onOpenFeedUrl || onMoveToFolder || onSetWebviewMaxWidth)
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -82,6 +83,11 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
             {onToggleBrowser && (
               <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onToggleBrowser(); closeMenu() }}>
                 {openInBrowser ? <>WebView Mode <Check size={13} style={{ verticalAlign: '-2px', marginLeft: 2 }} /></> : 'WebView Mode'}
+              </div>
+            )}
+            {onSetWebviewMaxWidth && openInBrowser && (
+              <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onSetWebviewMaxWidth(); closeMenu() }}>
+                Set Webview Max Width...
               </div>
             )}
             {onOpenFeedUrl && (
