@@ -18,7 +18,7 @@ export default function ArticleRow({ article, selected, onClick }: Props) {
       onClick={onClick}
     >
       <span className={`unread-dot${article.read ? ' read' : ''}`} />
-      <FeedIcon url={article.favicon_url} title={article.feed_title} />
+      <FeedIcon url={article.favicon_url} cachedName={article.favicon_cached} feedId={article.feed_id} title={article.feed_title} />
       <div className="article-row-content">
         <div className="article-row-title">
           <span className="article-row-title-text">{article.title}</span>

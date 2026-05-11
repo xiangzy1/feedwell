@@ -2,23 +2,31 @@ import { useState } from 'react'
 
 interface Props {
   url: string | null | undefined
+  cachedName?: string | null
+  feedId?: number
   title: string
 }
 
-export default function FeedIcon({ url, title }: Props) {
+export default function FeedIcon({ url, cachedName, feedId, title }: Props) {
   const [imgError, setImgError] = useState(false)
 
+  const iconSrc = cachedName ? `feedicon://${cachedName}` : url
   const letter = (title || '?')[0].toUpperCase()
   const hue = hashString(title || '') % 360
   const bgColor = `hsl(${hue}, 55%, 55%)`
 
-  if (url && !imgError) {
+  if (iconSrc && !imgError) {
     return (
       <img
         className="feed-icon"
-        src={url}
+        src={iconSrc}
         alt=""
-        onError={() => setImgError(true)}
+        onError={() => {
+          setImgError(true)
+          if (cachedName && feedId != null) {
+            window.api.feeds.clearFaviconCache(feedId)
+          }
+        }}
       />
     )
   }

@@ -14,6 +14,7 @@ export interface Article {
   fetched_at: string
   feed_title: string
   favicon_url: string | null
+  favicon_cached: string | null
 }
 
 interface Props {

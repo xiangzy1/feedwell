@@ -85,7 +85,7 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
                 {openInBrowser ? <>WebView Mode <Check size={13} style={{ verticalAlign: '-2px', marginLeft: 2 }} /></> : 'WebView Mode'}
               </div>
             )}
-            {onSetWebviewMaxWidth && openInBrowser && (
+            {onSetWebviewMaxWidth && !!openInBrowser && (
               <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onSetWebviewMaxWidth(); closeMenu() }}>
                 Set Webview Max Width...
               </div>

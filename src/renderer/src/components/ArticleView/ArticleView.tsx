@@ -3,6 +3,9 @@ import ArticleHeader from './ArticleHeader'
 import ArticleViewTitlebar from './ArticleViewTitlebar'
 import { Article } from '../../hooks/useArticles'
 import { Feed } from '../../hooks/useFeeds'
+import { useTranslation } from '../../hooks/useTranslation'
+import { useWebviewTranslation, injectTranslationCss } from '../../hooks/useWebviewTranslation'
+import { useTranslationSettings } from '../../hooks/useTranslationSettings'
 import { hljs } from '../../utils/highlight'
 import '../../styles/article-view.css'
 
@@ -18,6 +21,14 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
   const useWebview = feed?.open_in_browser && article?.url
   const contentRef = useRef<HTMLDivElement>(null)
   const [processedHtml, setProcessedHtml] = useState('')
+  const [translationEnabled, setTranslationEnabled] = useState(false)
+  const { settings: tSettings } = useTranslationSettings()
+  const { isTranslating } = useTranslation(contentRef, article?.id, translationEnabled, processedHtml)
+
+  // Reset translation on article change
+  useEffect(() => {
+    setTranslationEnabled(false)
+  }, [article?.id])
 
   useEffect(() => {
     contentRef.current?.scrollTo(0, 0)
@@ -62,6 +73,9 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
       onToggleRead={article ? () => onToggleRead(article.id, !article.read) : () => {}}
       onToggleStar={article ? () => onToggleStar(article.id, !article.starred) : () => {}}
       onOpenExternal={article && article.url ? () => window.api.openExternal(article.url) : () => {}}
+      translationEnabled={translationEnabled}
+      onToggleTranslation={() => setTranslationEnabled(prev => !prev)}
+      isWebview={useWebview}
     />
   )
 
@@ -78,7 +92,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     return (
       <div className="article-view webview-container">
         {titlebar}
-        <WebviewView url={article.url!} webviewMaxWidth={feed.webview_max_width ?? null} />
+        <WebviewView url={article.url!} webviewMaxWidth={feed.webview_max_width ?? null} articleId={article.id} translationEnabled={translationEnabled} />
       </div>
     )
   }
@@ -141,13 +155,15 @@ function escapeHtml(str: string): string {
 
 const SCROLL_MSG_PREFIX = '__SCROLL__'
 
-function WebviewView({ url, webviewMaxWidth }: { url: string; webviewMaxWidth: number | null }) {
+function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled }: { url: string; webviewMaxWidth: number | null; articleId: number; translationEnabled: boolean }) {
   const webviewRef = useRef<Electron.WebviewTag | null>(null)
   const initialLoadDone = useRef(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<{ code: number; desc: string } | null>(null)
   const [scrollInfo, setScrollInfo] = useState({ top: 0, height: 1, viewH: 1 })
+  const [domReady, setDomReady] = useState(false)
 
+  useWebviewTranslation(webviewRef, articleId, translationEnabled, domReady)
   const refCallback = useCallback((el: Electron.WebviewTag | null) => {
     webviewRef.current = el
     if (!el) return
@@ -175,6 +191,8 @@ function WebviewView({ url, webviewMaxWidth }: { url: string; webviewMaxWidth: n
       }
     }
     const onDomReady = () => {
+      setDomReady(true)
+      injectTranslationCss(el)
       // Intercept target="_blank" link clicks via window.open()
       // to trigger setWindowOpenHandler in main process
       el.executeJavaScript(`
@@ -227,6 +245,7 @@ function WebviewView({ url, webviewMaxWidth }: { url: string; webviewMaxWidth: n
 
   useEffect(() => {
     initialLoadDone.current = false
+    setDomReady(false)
     setLoading(true)
     setError(null)
     setScrollInfo({ top: 0, height: 1, viewH: 1 })

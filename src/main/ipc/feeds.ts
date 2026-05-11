@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { getDb } from '../db'
 import { fetchFeed, discoverFeed } from '../services/feed-fetcher'
 import { enqueue } from '../services/refresh-queue'
+import { deleteCachedIcon } from '../services/favicon'
 
 export function registerFeedIpc(): void {
   ipcMain.handle('feeds:add', async (_event, url: string, folderId?: number) => {
@@ -37,6 +38,7 @@ export function registerFeedIpc(): void {
   })
 
   ipcMain.handle('feeds:remove', (_event, id: number) => {
+    deleteCachedIcon(id)
     getDb().prepare('DELETE FROM articles WHERE feed_id = ?').run(id)
     getDb().prepare('DELETE FROM fetch_logs WHERE feed_id = ?').run(id)
     getDb().prepare('DELETE FROM feeds WHERE id = ?').run(id)
@@ -91,6 +93,13 @@ export function registerFeedIpc(): void {
     `).all() as any[]
     if (feeds.length === 0) return
     await enqueue(feeds)
+  })
+
+  ipcMain.handle('feeds:clearFaviconCache', (_event, feedId: number) => {
+    deleteCachedIcon(feedId)
+    getDb().prepare('UPDATE feeds SET favicon_cached = NULL WHERE id = ?').run(feedId)
+    notifyFeedsUpdated()
+    notifyArticlesUpdated()
   })
 }
 

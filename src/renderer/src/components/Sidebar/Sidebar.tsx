@@ -14,6 +14,7 @@ interface Feed {
   unread_count: number
   open_in_browser: boolean
   favicon_url: string | null
+  favicon_cached: string | null
   webview_max_width: number | null
 }
 

@@ -3,6 +3,7 @@ import FeedParser from 'feedparser'
 import { request } from 'node:http'
 import { request as httpsRequest } from 'https'
 import { createGunzip } from 'node:zlib'
+import { discoverFavicon, downloadAndCacheIcon, findCachedFile } from './favicon'
 
 const USER_AGENT = 'Mozilla/5.0'
 
@@ -24,11 +25,41 @@ export async function fetchFeed(feedId: number, feedUrl: string): Promise<FetchR
     let articlesCount = 0
     if (feedId > 0) {
       articlesCount = saveArticles(feedId, articles)
+      const feed = getDb().prepare('SELECT favicon_url, site_url FROM feeds WHERE id = ?').get(feedId) as { favicon_url: string | null; site_url: string | null } | undefined
+
       const rawFavicon = meta.favicon || (meta.image && meta.image.url) || null
-      const faviconUrl = rawFavicon && /^https?:\/\//.test(rawFavicon) ? rawFavicon : null
-      getDb().prepare(
-        "UPDATE feeds SET title = ?, site_url = COALESCE(?, site_url), favicon_url = COALESCE(?, favicon_url), last_fetched_at = datetime('now') WHERE id = ?"
-      ).run(meta.title || '', meta.link || '', faviconUrl, feedId)
+      let faviconUrl: string | null = rawFavicon && /^https?:\/\//.test(rawFavicon) ? rawFavicon : null
+
+      let faviconCached: string | null = findCachedFile(feedId)
+
+      if (faviconUrl && !faviconCached) {
+        faviconCached = await downloadAndCacheIcon(faviconUrl, feedId)
+      }
+      if (!faviconUrl && feed?.favicon_url && !faviconCached) {
+        faviconCached = await downloadAndCacheIcon(feed.favicon_url, feedId)
+      }
+
+      // If still no cached icon, try homepage discovery
+      if (!faviconCached) {
+        const siteUrl = meta.link || feed?.site_url
+        if (siteUrl) {
+          faviconUrl = await discoverFavicon(siteUrl)
+          if (faviconUrl) {
+            faviconCached = await downloadAndCacheIcon(faviconUrl, feedId)
+          }
+        }
+      }
+
+      // Clear bad favicon_url if we got a new one from discovery
+      if (faviconCached && faviconUrl && faviconUrl !== feed?.favicon_url) {
+        getDb().prepare(
+          "UPDATE feeds SET title = ?, site_url = COALESCE(?, site_url), favicon_url = ?, favicon_cached = ?, last_fetched_at = datetime('now') WHERE id = ?"
+        ).run(meta.title || '', meta.link || '', faviconUrl, faviconCached, feedId)
+      } else {
+        getDb().prepare(
+          "UPDATE feeds SET title = ?, site_url = COALESCE(?, site_url), favicon_url = COALESCE(?, favicon_url), favicon_cached = COALESCE(?, favicon_cached), last_fetched_at = datetime('now') WHERE id = ?"
+        ).run(meta.title || '', meta.link || '', faviconUrl, faviconCached, feedId)
+      }
       logFetch(feedId, 'success', null, articlesCount, responseTime)
     }
     return { status: 'success', articlesCount, responseTime, feedTitle: meta.title, feedSiteUrl: meta.link }

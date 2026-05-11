@@ -10,6 +10,7 @@ declare global {
         list: () => Promise<any[]>
         refresh: (id?: number) => Promise<void>
         refreshStale: () => Promise<void>
+        clearFaviconCache: (feedId: number) => Promise<void>
       }
       articles: {
         list: (feedId?: number, options?: Record<string, unknown>) => Promise<any[]>
@@ -34,11 +35,16 @@ declare global {
         get: (key: string) => Promise<any>
         set: (key: string, value: unknown) => Promise<void>
       }
+      translation: {
+        translate: (articleId: number, texts: string[]) => Promise<string[]>
+        testConnection: () => Promise<boolean>
+      }
       onFeedsUpdated: (callback: () => void) => () => void
       onArticlesUpdated: (callback: () => void) => () => void
       onRefreshProgress: (callback: (progress: { current: number; total: number }) => void) => () => void
       onRefreshDone: (callback: () => void) => () => void
       openExternal: (url: string) => Promise<void>
+      setCurrentArticle: (feedId: number | null, articleId: number | null) => Promise<void>
       isColdStart: () => Promise<boolean>
       onMenuAddFeed: (callback: () => void) => () => void
       onMenuImportOpml: (callback: () => void) => () => void

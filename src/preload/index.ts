@@ -13,7 +13,8 @@ const api = {
     update: (id: number, changes: Record<string, unknown>) => ipcRenderer.invoke('feeds:update', id, changes),
     list: () => ipcRenderer.invoke('feeds:list'),
     refresh: (id?: number) => ipcRenderer.invoke('feeds:refresh', id),
-    refreshStale: () => ipcRenderer.invoke('feeds:refreshStale')
+    refreshStale: () => ipcRenderer.invoke('feeds:refreshStale'),
+    clearFaviconCache: (feedId: number) => ipcRenderer.invoke('feeds:clearFaviconCache', feedId)
   },
   articles: {
     list: (feedId?: number, options?: Record<string, unknown>) => ipcRenderer.invoke('articles:list', feedId, options),
@@ -38,6 +39,10 @@ const api = {
     get: (key: string) => ipcRenderer.invoke('settings:get', key),
     set: (key: string, value: unknown) => ipcRenderer.invoke('settings:set', key, value)
   },
+  translation: {
+    translate: (articleId: number, texts: string[]) => ipcRenderer.invoke('translation:translate', { articleId, texts }),
+    testConnection: () => ipcRenderer.invoke('translation:testConnection')
+  },
   onFeedsUpdated: (callback: () => void) => onChannel('feeds:updated', callback),
   onArticlesUpdated: (callback: () => void) => onChannel('articles:updated', callback),
   onRefreshProgress: (callback: (progress: { current: number; total: number }) => void) => {
@@ -47,6 +52,7 @@ const api = {
   },
   onRefreshDone: (callback: () => void) => onChannel('feeds:refreshDone', callback),
   openExternal: (url: string) => ipcRenderer.invoke('openExternal', url),
+  setCurrentArticle: (feedId: number | null, articleId: number | null) => ipcRenderer.invoke('app:setCurrentArticle', feedId, articleId),
   isColdStart: () => ipcRenderer.invoke('app:isColdStart'),
   onMenuAddFeed: (callback: () => void) => onChannel('menu:addFeed', callback),
   onMenuImportOpml: (callback: () => void) => onChannel('menu:importOpml', callback),

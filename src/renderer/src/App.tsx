@@ -13,6 +13,7 @@ import { useShortcuts } from './hooks/useShortcuts'
 import { SortOrder } from './components/ArticleList/ArticleList'
 import { useThemeProvider, ThemeProvider } from './hooks/useTheme'
 import { useReadingSettingsProvider, ReadingSettingsProvider } from './hooks/useReadingSettings'
+import { useTranslationSettingsProvider, TranslationSettingsProvider } from './hooks/useTranslationSettings'
 import { PanelLeftClose, PanelLeft } from 'lucide-react'
 import './styles/global.css'
 import './styles/stats.css'
@@ -48,6 +49,7 @@ export default function App() {
   }, [])
   const themeCtx = useThemeProvider()
   const readingCtx = useReadingSettingsProvider()
+  const translationCtx = useTranslationSettingsProvider()
   const { feeds, reload: reloadFeeds } = useFeeds()
   const { articles, selectedId, setSelectedId, markRead, markStarred, markAllRead } = useArticles({
     feedId: selectedFeedId,
@@ -55,6 +57,15 @@ export default function App() {
   })
   const selectedArticle = articles.find(a => a.id === selectedId) || null
   const activeFeedId = selectedArticle?.feed_id ?? selectedFeedId
+
+  // Report currently viewed article to main process (used for favicon caching etc.)
+  useEffect(() => {
+    window.api.setCurrentArticle(
+      selectedArticle?.feed_id ?? null,
+      selectedArticle?.id ?? null
+    )
+  }, [selectedArticle?.id, selectedArticle?.feed_id])
+
   const sortedArticles = useMemo(() => (
     sortOrder === 'newest' ? articles : [...articles].reverse()
   ), [articles, sortOrder])
@@ -103,6 +114,7 @@ export default function App() {
   return (
     <ThemeProvider value={themeCtx}>
       <ReadingSettingsProvider value={readingCtx}>
+      <TranslationSettingsProvider value={translationCtx}>
       <div className="app">
         <button className="sidebar-toggle" onClick={toggleSidebar}>
           {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
@@ -142,6 +154,7 @@ export default function App() {
         {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
         {showStats && <StatsDialog onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />}
       </div>
+      </TranslationSettingsProvider>
       </ReadingSettingsProvider>
     </ThemeProvider>
   )

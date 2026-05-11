@@ -23,7 +23,7 @@ export function registerArticleIpc(): void {
     const offset = options?.offset || 0
 
     const articles = getDb().prepare(
-      `SELECT a.*, f.title as feed_title, f.favicon_url FROM articles a JOIN feeds f ON f.id = a.feed_id ${where} ORDER BY a.published_at DESC, a.fetched_at DESC LIMIT ? OFFSET ?`
+      `SELECT a.*, f.title as feed_title, f.favicon_url, f.favicon_cached FROM articles a JOIN feeds f ON f.id = a.feed_id ${where} ORDER BY a.published_at DESC, a.fetched_at DESC LIMIT ? OFFSET ?`
     ).all(...params, limit, offset)
 
     const countResult = getDb().prepare(
