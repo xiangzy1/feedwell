@@ -36,8 +36,8 @@ import dockerfile from 'highlight.js/lib/languages/dockerfile'
   ['yaml', yaml], ['yml', yaml],
   ['markdown', markdown], ['md', markdown],
   ['diff', diff], ['ini', ini], ['dockerfile', dockerfile],
-] as [string, ReturnType<typeof javascript>][]).forEach(([name, lang]) => {
-  hljs.registerLanguage(name, lang)
+] as [string, ...any[]][]).forEach(([name, lang]) => {
+  hljs.registerLanguage(name, lang as any)
 })
 
 export { hljs }

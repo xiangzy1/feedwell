@@ -55,7 +55,7 @@ export function useReadingSettingsProvider() {
     paragraphSpacing: loadSetting('paragraphSpacing'),
   }))
 
-  const persistRef = useRef(s => persistSettings(s))
+  const persistRef = useRef((s: ReadingSettings) => persistSettings(s))
   useEffect(() => {
     applySettings(settings)
     persistRef.current(settings)

@@ -44,7 +44,6 @@ app.on('web-contents-created', (_event, contents) => {
           for (const win of BrowserWindow.getAllWindows()) {
             if (!win.isDestroyed()) {
               win.webContents.send('feeds:updated')
-              win.webContents.send('articles:updated')
             }
           }
         }

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import Sidebar from './components/Sidebar/Sidebar'
 import ArticleList from './components/ArticleList/ArticleList'
 import ArticleView from './components/ArticleView/ArticleView'
@@ -6,7 +6,7 @@ import AddFeedDialog from './components/Sidebar/AddFeedDialog'
 import SettingsDialog from './components/Settings/SettingsDialog'
 import StatsDialog from './components/Stats/StatsDialog'
 import ResizeHandle from './components/ResizeHandle'
-import { useArticles } from './hooks/useArticles'
+import { useArticles, Article } from './hooks/useArticles'
 import { useFeeds } from './hooks/useFeeds'
 import { usePersistedWidth } from './hooks/usePersistedWidth'
 import { useShortcuts } from './hooks/useShortcuts'
@@ -55,7 +55,8 @@ export default function App() {
     feedId: selectedFeedId,
     filter: selectedFilter
   })
-  const selectedArticle = articles.find(a => a.id === selectedId) || null
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+
   const activeFeedId = selectedArticle?.feed_id ?? selectedFeedId
 
   // Report currently viewed article to main process (used for favicon caching etc.)
@@ -73,7 +74,10 @@ export default function App() {
   useShortcuts({
     articles: sortedArticles,
     selectedId,
-    onSelectArticle: setSelectedId,
+    onSelectArticle: (article) => {
+      setSelectedId(article.id)
+      if (article) setSelectedArticle(article)
+    },
     onMarkRead: markRead,
     onToggleStar: markStarred,
     selectedArticle
@@ -135,7 +139,11 @@ export default function App() {
         <ArticleList
           sortedArticles={sortedArticles}
           selectedId={selectedId}
-          onSelect={(id) => { setSelectedId(id); markRead(id) }}
+          onSelect={(article) => {
+            setSelectedId(article.id)
+            markRead(article.id)
+            if (article) setSelectedArticle(article)
+          }}
           onMarkAllRead={() => markAllRead(selectedFeedId || undefined)}
           filter={selectedFilter}
           sortOrder={sortOrder}

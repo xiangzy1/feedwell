@@ -72,10 +72,10 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
       article={article}
       onToggleRead={article ? () => onToggleRead(article.id, !article.read) : () => {}}
       onToggleStar={article ? () => onToggleStar(article.id, !article.starred) : () => {}}
-      onOpenExternal={article && article.url ? () => window.api.openExternal(article.url) : () => {}}
+      onOpenExternal={article && article.url ? () => window.api.openExternal(article.url!) : () => {}}
       translationEnabled={translationEnabled}
       onToggleTranslation={() => setTranslationEnabled(prev => !prev)}
-      isWebview={useWebview}
+      isWebview={!!useWebview}
     />
   )
 
@@ -251,6 +251,7 @@ function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled }: { 
     setScrollInfo({ top: 0, height: 1, viewH: 1 })
   }, [url])
 
+  // @ts-expect-error webview allowpopups is a boolean HTML attribute
   const webviewEl = <webview ref={refCallback} src={url} className="article-webview" allowpopups="" />
 
   return (

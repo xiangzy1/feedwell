@@ -10,7 +10,7 @@ export type SortOrder = 'newest' | 'oldest'
 interface Props {
   sortedArticles: Article[]
   selectedId: number | null
-  onSelect: (id: number) => void
+  onSelect: (article: Article) => void
   onMarkAllRead: () => void
   filter: string | null
   sortOrder: SortOrder
@@ -31,7 +31,7 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
     if (selectedId == null || !virtuosoRef.current) return
     const idx = sorted.findIndex(a => a.id === selectedId)
     if (idx >= 0) {
-      virtuosoRef.current.scrollIntoView({ index: idx, behavior: 'smooth', align: 'nearest' })
+      virtuosoRef.current.scrollIntoView({ index: idx, behavior: 'smooth', align: 'nearest' } as any)
     }
     // Only scroll on explicit selection, not when sorted list changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,7 +71,7 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
             <ArticleRow
               article={article}
               selected={article.id === selectedId}
-              onClick={() => onSelect(article.id)}
+              onClick={() => onSelect(article)}
             />
           )}
         />

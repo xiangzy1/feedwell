@@ -4,7 +4,7 @@ import { Article } from './useArticles'
 interface Props {
   articles: Article[]
   selectedId: number | null
-  onSelectArticle: (id: number) => void
+  onSelectArticle: (article: Article) => void
   onMarkRead: (id: number) => void
   onToggleStar: (id: number, starred: boolean) => void
   selectedArticle: Article | null
@@ -23,7 +23,7 @@ export function useShortcuts({ articles, selectedId, onSelectArticle, onMarkRead
           e.preventDefault()
           const next = currentIndex < articles.length - 1 ? currentIndex + 1 : currentIndex
           if (articles[next]) {
-            onSelectArticle(articles[next].id)
+            onSelectArticle(articles[next])
             onMarkRead(articles[next].id)
           }
           break
@@ -32,7 +32,7 @@ export function useShortcuts({ articles, selectedId, onSelectArticle, onMarkRead
         case 'ArrowUp': {
           e.preventDefault()
           const prev = currentIndex > 0 ? currentIndex - 1 : 0
-          if (articles[prev]) onSelectArticle(articles[prev].id)
+          if (articles[prev]) onSelectArticle(articles[prev])
           break
         }
         case 'r': {

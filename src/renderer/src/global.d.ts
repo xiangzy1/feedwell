@@ -13,7 +13,7 @@ declare global {
         clearFaviconCache: (feedId: number) => Promise<void>
       }
       articles: {
-        list: (feedId?: number, options?: Record<string, unknown>) => Promise<any[]>
+        list: (feedId?: number, options?: Record<string, unknown>) => Promise<{ articles: any[] }>
         markRead: (id: number, read?: boolean) => Promise<void>
         markStarred: (id: number, starred: boolean) => Promise<void>
         markAllRead: (feedId?: number) => Promise<void>
