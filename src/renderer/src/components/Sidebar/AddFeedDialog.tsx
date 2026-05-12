@@ -1,98 +1,99 @@
-import { useState, useEffect } from 'react'
+import { useReducer, useEffect } from 'react'
 
 interface Props {
   onAdd: (url: string, folderId?: number) => void
   onClose: () => void
 }
 
+type State = {
+  url: string
+  loading: boolean
+  error: string
+  folders: { id: number; name: string }[]
+  selectedFolderId: number | null
+  showNewFolder: boolean
+  newFolderName: string
+}
+
 export default function AddFeedDialog({ onAdd, onClose }: Props) {
-  const [url, setUrl] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [folders, setFolders] = useState<{ id: number; name: string }[]>([])
-  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
-  const [showNewFolder, setShowNewFolder] = useState(false)
-  const [newFolderName, setNewFolderName] = useState('')
+  const [state, setState] = useReducer(
+    (prev: State, next: Partial<State>) => ({ ...prev, ...next }),
+    { url: '', loading: false, error: '', folders: [], selectedFolderId: null, showNewFolder: false, newFolderName: '' }
+  )
 
   useEffect(() => {
-    window.api.folders.list().then(setFolders)
+    window.api.folders.list().then(folders => setState({ folders }))
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!url.trim()) return
+    if (!state.url.trim()) return
 
-    let folderId = selectedFolderId
+    let folderId = state.selectedFolderId
 
-    if (showNewFolder && newFolderName.trim()) {
-      const result = await window.api.folders.create(newFolderName.trim())
+    if (state.showNewFolder && state.newFolderName.trim()) {
+      const result = await window.api.folders.create(state.newFolderName.trim())
       folderId = result.id
     }
 
-    setLoading(true)
-    setError('')
+    setState({ loading: true, error: '' })
     try {
-      await onAdd(url.trim(), folderId || undefined)
+      await onAdd(state.url.trim(), folderId || undefined)
     } catch (err: any) {
-      setError(err.message || 'Failed to add feed')
-      setLoading(false)
+      setState({ error: err.message || 'Failed to add feed', loading: false })
     }
   }
 
   const handleFolderChange = (value: string) => {
     if (value === '__new__') {
-      setShowNewFolder(true)
-      setSelectedFolderId(null)
+      setState({ showNewFolder: true, selectedFolderId: null })
     } else if (value === '') {
-      setShowNewFolder(false)
-      setSelectedFolderId(null)
+      setState({ showNewFolder: false, selectedFolderId: null })
     } else {
-      setShowNewFolder(false)
-      setSelectedFolderId(Number(value))
+      setState({ showNewFolder: false, selectedFolderId: Number(value) })
     }
   }
 
   return (
-    <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog" onClick={e => e.stopPropagation()}>
+    <div className="dialog-overlay" role="none" onClick={onClose} onKeyDown={e => { if (e.key === 'Escape') onClose() }}>
+      <div className="dialog" role="dialog" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
         <h3>Add Feed</h3>
         <form onSubmit={handleSubmit}>
           <input
             type="url"
             placeholder="Enter website or feed URL"
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            autoFocus
+            value={state.url}
+            onChange={e => setState({ url: e.target.value })}
             className="dialog-input"
           />
           <div style={{ marginTop: 10 }}>
             <select
               className="dialog-input"
-              value={showNewFolder ? '__new__' : (selectedFolderId ?? '')}
+              value={state.showNewFolder ? '__new__' : (state.selectedFolderId ?? '')}
               onChange={e => handleFolderChange(e.target.value)}
             >
               <option value="">No folder</option>
-              {folders.map(f => (
+              {state.folders.map(f => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
-              <option value="__new__">New folder...</option>
+              <option value="__new__">New folder…</option>
             </select>
           </div>
-          {showNewFolder && (
+          {state.showNewFolder && (
             <input
               type="text"
               placeholder="Folder name"
-              value={newFolderName}
-              onChange={e => setNewFolderName(e.target.value)}
+              value={state.newFolderName}
+              onChange={e => setState({ newFolderName: e.target.value })}
               className="dialog-input"
               style={{ marginTop: 8 }}
             />
           )}
-          {error && <div className="dialog-error">{error}</div>}
+          {state.error && <div className="dialog-error">{state.error}</div>}
           <div className="dialog-actions">
             <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={loading || !url.trim() || (showNewFolder && !newFolderName.trim())} className="btn-primary">
-              {loading ? 'Adding...' : 'Add'}
+            <button type="submit" disabled={state.loading || !state.url.trim() || (state.showNewFolder && !state.newFolderName.trim())} className="btn-primary">
+              {state.loading ? 'Adding…' : 'Add'}
             </button>
           </div>
         </form>

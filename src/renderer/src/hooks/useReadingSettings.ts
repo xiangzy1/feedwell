@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, createContext, use } from 'react'
 import { clamp } from '../utils/clamp'
 
 export interface ReadingSettings {
@@ -79,7 +79,7 @@ const ReadingSettingsContext = createContext<ReadingSettingsContextValue | null>
 export const ReadingSettingsProvider = ReadingSettingsContext.Provider
 
 export function useReadingSettings() {
-  const ctx = useContext(ReadingSettingsContext)
+  const ctx = use(ReadingSettingsContext)
   if (!ctx) throw new Error('useReadingSettings must be used within ReadingSettingsProvider')
   return ctx
 }

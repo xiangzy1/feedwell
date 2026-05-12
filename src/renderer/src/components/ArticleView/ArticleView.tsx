@@ -1,4 +1,5 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useReducer } from 'react'
+import DOMPurify from 'dompurify'
 import ArticleHeader from './ArticleHeader'
 import ArticleViewTitlebar from './ArticleViewTitlebar'
 import { Article } from '../../hooks/useArticles'
@@ -20,10 +21,10 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
   const feed = article ? feeds.find(f => f.id === article.feed_id) : undefined
   const useWebview = feed?.open_in_browser && article?.url
   const contentRef = useRef<HTMLDivElement>(null)
-  const [processedHtml, setProcessedHtml] = useState('')
+  const [contentVersion, setContentVersion] = useState(0)
   const [translationEnabled, setTranslationEnabled] = useState(false)
   const { settings: tSettings } = useTranslationSettings()
-  const { isTranslating } = useTranslation(contentRef, article?.id, translationEnabled, processedHtml)
+  const { isTranslating } = useTranslation(contentRef, article?.id, translationEnabled, contentVersion)
 
   // Reset translation on article change
   useEffect(() => {
@@ -36,22 +37,23 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
 
   useEffect(() => {
     const raw = article?.content || article?.summary || ''
-    if (!raw) {
-      setProcessedHtml('')
+    const el = contentRef.current
+    if (!raw || !el) {
+      if (el) el.innerHTML = ''
       return
     }
 
+    const sanitized = DOMPurify.sanitize(raw)
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-    processMermaidInHtml(raw, isDark).then(setProcessedHtml)
-  }, [article?.id, article?.content])
-
-  useEffect(() => {
-    const el = contentRef.current
-    if (!el) return
-    el.querySelectorAll('pre code:not(.hljs)').forEach((block) => {
-      hljs.highlightElement(block as HTMLElement)
+    processMermaidInHtml(sanitized, isDark).then(html => {
+      if (!contentRef.current) return
+      contentRef.current.innerHTML = html
+      contentRef.current.querySelectorAll('pre code:not(.hljs)').forEach((block) => {
+        hljs.highlightElement(block as HTMLElement)
+      })
+      setContentVersion(k => k + 1)
     })
-  }, [processedHtml])
+  }, [article?.id, article?.content])
 
   useEffect(() => {
     const el = contentRef.current
@@ -65,7 +67,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     }
     el.addEventListener('click', handler)
     return () => el.removeEventListener('click', handler)
-  }, [processedHtml])
+  }, [article?.id])
 
   const titlebar = (
     <ArticleViewTitlebar
@@ -92,7 +94,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     return (
       <div className="article-view webview-container">
         {titlebar}
-        <WebviewView url={article.url!} webviewMaxWidth={feed.webview_max_width ?? null} articleId={article.id} translationEnabled={translationEnabled} />
+        <WebviewView url={article.url!} webviewMaxWidth={feed!.webview_max_width ?? null} articleId={article.id} translationEnabled={translationEnabled} />
       </div>
     )
   }
@@ -104,7 +106,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
       <div
         ref={contentRef}
         className="article-content"
-        dangerouslySetInnerHTML={{ __html: processedHtml }}
+        data-cv={contentVersion}
       />
     </div>
   )
@@ -128,16 +130,21 @@ async function processMermaidInHtml(html: string, isDark: boolean): Promise<stri
   const mermaid = await import('mermaid')
   mermaid.default.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' })
 
+  const results = await Promise.all(
+    mermaidBlocks.map(async ({ code }, i) => {
+      const placeholder = `<!--MERMAID_PLACEHOLDER_${i}-->`
+      try {
+        const { svg } = await mermaid.default.render(`mermaid-${i}-${Date.now()}`, code)
+        return { placeholder, html: `<div class="mermaid-diagram">${svg}</div>` }
+      } catch {
+        return { placeholder, html: `<pre class="mermaid-error"><code>${escapeHtml(code)}</code></pre>` }
+      }
+    })
+  )
+
   let result = replaced
-  for (let i = 0; i < mermaidBlocks.length; i++) {
-    const { code } = mermaidBlocks[i]
-    const placeholder = `<!--MERMAID_PLACEHOLDER_${i}-->`
-    try {
-      const { svg } = await mermaid.default.render(`mermaid-${i}-${Date.now()}`, code)
-      result = result.replace(placeholder, `<div class="mermaid-diagram">${svg}</div>`)
-    } catch {
-      result = result.replace(placeholder, `<pre class="mermaid-error"><code>${escapeHtml(code)}</code></pre>`)
-    }
+  for (const { placeholder, html: svgHtml } of results) {
+    result = result.replace(placeholder, svgHtml)
   }
 
   return result
@@ -155,43 +162,55 @@ function escapeHtml(str: string): string {
 
 const SCROLL_MSG_PREFIX = '__SCROLL__'
 
+type WebviewState = {
+  loading: boolean
+  error: { code: number; desc: string } | null
+  scrollInfo: { top: number; height: number; viewH: number }
+  domReady: boolean
+}
+
+const initialWebviewState: WebviewState = {
+  loading: true,
+  error: null,
+  scrollInfo: { top: 0, height: 1, viewH: 1 },
+  domReady: false,
+}
+
 function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled }: { url: string; webviewMaxWidth: number | null; articleId: number; translationEnabled: boolean }) {
   const webviewRef = useRef<Electron.WebviewTag | null>(null)
   const initialLoadDone = useRef(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<{ code: number; desc: string } | null>(null)
-  const [scrollInfo, setScrollInfo] = useState({ top: 0, height: 1, viewH: 1 })
-  const [domReady, setDomReady] = useState(false)
+  const [wv, dispatch] = useReducer(
+    (prev: WebviewState, next: Partial<WebviewState>) => ({ ...prev, ...next }),
+    initialWebviewState
+  )
 
-  useWebviewTranslation(webviewRef, articleId, translationEnabled, domReady)
+  useWebviewTranslation(webviewRef, articleId, translationEnabled, wv.domReady)
   const refCallback = useCallback((el: Electron.WebviewTag | null) => {
     webviewRef.current = el
     if (!el) return
 
     const onStart = () => {
       if (initialLoadDone.current) return
-      setLoading(true)
-      setError(null)
+      dispatch({ loading: true, error: null })
     }
     const onStop = () => {
       initialLoadDone.current = true
-      setLoading(false)
+      dispatch({ loading: false })
     }
     const onFail = (e: Electron.DidFailLoadEvent) => {
       if (e.errorCode === -3) return
-      setLoading(false)
-      setError({ code: e.errorCode, desc: e.errorDescription })
+      dispatch({ loading: false, error: { code: e.errorCode, desc: e.errorDescription } })
     }
     const onConsoleMsg = (e: Electron.ConsoleMessageEvent) => {
       if (typeof e.message === 'string' && e.message.startsWith(SCROLL_MSG_PREFIX)) {
         try {
           const i = JSON.parse(e.message.slice(SCROLL_MSG_PREFIX.length))
-          setScrollInfo({ top: i.t, height: i.h, viewH: i.v })
+          dispatch({ scrollInfo: { top: i.t, height: i.h, viewH: i.v } })
         } catch { /* ignore malformed scroll messages */ }
       }
     }
     const onDomReady = () => {
-      setDomReady(true)
+      dispatch({ domReady: true })
       injectTranslationCss(el)
       // Intercept target="_blank" link clicks via window.open()
       // to trigger setWindowOpenHandler in main process
@@ -245,38 +264,35 @@ function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled }: { 
 
   useEffect(() => {
     initialLoadDone.current = false
-    setDomReady(false)
-    setLoading(true)
-    setError(null)
-    setScrollInfo({ top: 0, height: 1, viewH: 1 })
+    dispatch({ ...initialWebviewState })
   }, [url])
 
-  // @ts-expect-error webview allowpopups is a boolean HTML attribute
+  /* eslint-disable react/no-unknown-property */
   const webviewEl = <webview ref={refCallback} src={url} className="article-webview" allowpopups="" />
+  /* eslint-enable react/no-unknown-property */
 
   return (
     <>
       {webviewMaxWidth ? (
         <div className="webview-scroll-area">
           <div className="webview-width-constraint" style={{ maxWidth: webviewMaxWidth }}>{webviewEl}</div>
-          <WebviewScrollbar webviewRef={webviewRef} scrollInfo={scrollInfo} />
+          <WebviewScrollbar webviewRef={webviewRef} scrollInfo={wv.scrollInfo} />
         </div>
       ) : webviewEl}
-      {loading && (
+      {wv.loading && (
         <div className="webview-overlay webview-loading">
           <div className="webview-spinner" />
           <p>Loading…</p>
         </div>
       )}
-      {error && (
+      {wv.error && (
         <div className="webview-overlay webview-error">
           <div className="webview-error-icon">!</div>
           <p className="webview-error-msg">Failed to load page</p>
-          <p className="webview-error-detail">{error.desc} ({error.code})</p>
+          <p className="webview-error-detail">{wv.error.desc} ({wv.error.code})</p>
           <button className="webview-retry-btn" onClick={() => {
             initialLoadDone.current = false
-            setError(null)
-            setLoading(true)
+            dispatch({ ...initialWebviewState })
             webviewRef.current?.loadURL(url)
           }}>Retry</button>
         </div>
@@ -369,12 +385,14 @@ function WebviewScrollbar({ webviewRef, scrollInfo }: {
     <div
       ref={trackRef}
       className="webview-scrollbar-track"
+      role="none"
       onClick={handleTrackClick}
       onWheel={handleWheel}
     >
       {canScroll && (
         <div
           className="webview-scrollbar-thumb"
+          role="none"
           style={{ height: `${thumbPct}%`, top: `${thumbTopPct}%` }}
           onMouseDown={handleThumbDown}
         />

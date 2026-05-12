@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, useMemo, createContext, use } from 'react'
 
 export type Theme = 'light' | 'dark' | 'system'
 type ResolvedTheme = 'light' | 'dark'
@@ -60,5 +60,5 @@ const ThemeContext = createContext<{ theme: Theme; setTheme: (t: Theme) => void;
 export const ThemeProvider = ThemeContext.Provider
 
 export function useTheme() {
-  return useContext(ThemeContext)
+  return use(ThemeContext)
 }

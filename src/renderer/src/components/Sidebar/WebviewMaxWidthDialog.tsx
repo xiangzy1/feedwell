@@ -63,7 +63,7 @@ export default function WebviewMaxWidthDialog({ feedId, currentMaxWidth, onSet, 
             style={{ width: '100%', marginTop: 8 }}
             onClick={() => setShowCustom(true)}
           >
-            Custom...
+            Custom…
           </button>
         ) : (
           <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>

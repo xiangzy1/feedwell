@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useReducer, useCallback, useEffect } from 'react'
 
 export interface MonthlyData {
   month: string
@@ -31,19 +31,34 @@ export interface Overview {
 
 const EMPTY_OVERVIEW: Overview = { total_feeds: 0, articles_this_month: 0, active_feeds: 0, failed_feeds: 0 }
 
+interface StatsState {
+  monthly: MonthlyData[]
+  health: FeedHealth[]
+  overview: Overview
+}
+
+type StatsAction = { monthly: MonthlyData[] } | { health: FeedHealth[] } | { overview: Overview } | { all: { monthly: MonthlyData[]; health: FeedHealth[]; overview: Overview } }
+
+function statsReducer(state: StatsState, action: StatsAction): StatsState {
+  if ('all' in action) {
+    return { monthly: action.all.monthly, health: action.all.health, overview: action.all.overview }
+  }
+  return { ...state, ...action }
+}
+
 export function useStats() {
-  const [monthly, setMonthly] = useState<MonthlyData[]>([])
-  const [health, setHealth] = useState<FeedHealth[]>([])
-  const [overview, setOverview] = useState<Overview>(EMPTY_OVERVIEW)
+  const [state, dispatch] = useReducer(statsReducer, {
+    monthly: [],
+    health: [],
+    overview: EMPTY_OVERVIEW,
+  })
 
   const load = useCallback(async () => {
     const [m, h] = await Promise.all([
       window.api.stats.getMonthly(undefined, 12),
       window.api.stats.getFeedHealth()
     ])
-    setMonthly(m ?? [])
-    setHealth(h?.feeds ?? [])
-    setOverview(h?.overview ?? EMPTY_OVERVIEW)
+    dispatch({ all: { monthly: m ?? [], health: h?.feeds ?? [], overview: h?.overview ?? EMPTY_OVERVIEW } })
   }, [])
 
   useEffect(() => {
@@ -54,12 +69,10 @@ export function useStats() {
         window.api.stats.getFeedHealth()
       ])
       if (cancelled) return
-      setMonthly(m ?? [])
-      setHealth(h?.feeds ?? [])
-      setOverview(h?.overview ?? EMPTY_OVERVIEW)
+      dispatch({ all: { monthly: m ?? [], health: h?.feeds ?? [], overview: h?.overview ?? EMPTY_OVERVIEW } })
     })()
     return () => { cancelled = true }
   }, [])
 
-  return { monthly, health, overview, reload: load }
+  return { ...state, reload: load }
 }

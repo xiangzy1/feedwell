@@ -25,7 +25,7 @@ export function useTranslation(
   contentRef: React.RefObject<HTMLDivElement | null>,
   articleId: number | undefined,
   enabled: boolean,
-  processedHtml: string
+  contentVersion: number
 ): { isTranslating: boolean; error: string | null } {
   const { settings } = useTranslationSettings()
   const isTranslatingRef = useRef(false)
@@ -48,7 +48,7 @@ export function useTranslation(
 
   // Insert translation blocks
   useEffect(() => {
-    if (!enabled || !articleId || settings.provider === 'disabled' || !processedHtml) return
+    if (!enabled || !articleId || settings.provider === 'disabled' || !contentVersion) return
 
     const el = contentRef.current
     if (!el) return
@@ -117,7 +117,7 @@ export function useTranslation(
         requestIdRef.current++
       }
     }
-  }, [enabled, articleId, settings.provider, settings.targetLang, processedHtml, contentRef])
+  }, [enabled, articleId, settings.provider, settings.targetLang, contentVersion, contentRef])
 
   return { isTranslating: isTranslatingRef.current, error: errorRef.current }
 }

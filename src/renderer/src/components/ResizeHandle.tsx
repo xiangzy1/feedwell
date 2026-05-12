@@ -13,8 +13,7 @@ export default function ResizeHandle({ className, onResize }: Props) {
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
+    document.body.style.cssText = 'cursor:col-resize;user-select:none'
     lastXRef.current = e.clientX
   }, [])
 
@@ -29,8 +28,7 @@ export default function ResizeHandle({ className, onResize }: Props) {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId)
     }
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
+    document.body.style.cssText = ''
   }, [])
 
   return (

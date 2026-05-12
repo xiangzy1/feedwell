@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, createContext, useContext } from 'react'
+import { useState, useCallback, useMemo, useEffect, createContext, use } from 'react'
 
 export interface TranslationSettings {
   provider: 'disabled' | 'ai' | 'google' | 'microsoft'
@@ -63,7 +63,7 @@ const TranslationSettingsContext = createContext<TranslationSettingsContextValue
 export const TranslationSettingsProvider = TranslationSettingsContext.Provider
 
 export function useTranslationSettings() {
-  const ctx = useContext(TranslationSettingsContext)
+  const ctx = use(TranslationSettingsContext)
   if (!ctx) throw new Error('useTranslationSettings must be used within TranslationSettingsProvider')
   return ctx
 }

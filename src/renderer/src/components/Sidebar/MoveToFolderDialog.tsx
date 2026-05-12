@@ -28,24 +28,34 @@ export default function MoveToFolderDialog({ feedId, currentFolderId, onMove, on
     onClose()
   }
 
+  const handleKeyDown = (action: () => void) => (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); action() }
+  }
+
   return (
-    <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog" onClick={e => e.stopPropagation()} style={{ width: 280 }}>
+    <div className="dialog-overlay" role="none" onClick={onClose} onKeyDown={e => { if (e.key === 'Escape') onClose() }}>
+      <div className="dialog" role="dialog" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} style={{ width: 280 }}>
         <h3>Move to Folder</h3>
         <div style={{ maxHeight: 240, overflowY: 'auto' }}>
           <div
+            role="button"
+            tabIndex={0}
             className={`context-menu-item ${currentFolderId === null ? 'active' : ''}`}
             style={{ borderRadius: 4, margin: '2px 0' }}
             onClick={() => handleSelect(null)}
+            onKeyDown={handleKeyDown(() => handleSelect(null))}
           >
             No folder
           </div>
           {folders.map(f => (
             <div
               key={f.id}
+              role="button"
+              tabIndex={0}
               className={`context-menu-item ${currentFolderId === f.id ? 'active' : ''}`}
               style={{ borderRadius: 4, margin: '2px 0' }}
               onClick={() => handleSelect(f.id)}
+              onKeyDown={handleKeyDown(() => handleSelect(f.id))}
             >
               {f.name}
             </div>
@@ -57,7 +67,7 @@ export default function MoveToFolderDialog({ feedId, currentFolderId, onMove, on
             style={{ width: '100%', marginTop: 8 }}
             onClick={() => setShowNewFolder(true)}
           >
-            New folder...
+            New folder…
           </button>
         ) : (
           <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>

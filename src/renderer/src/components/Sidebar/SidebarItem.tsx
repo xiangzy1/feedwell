@@ -87,7 +87,7 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
             )}
             {onSetWebviewMaxWidth && !!openInBrowser && (
               <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onSetWebviewMaxWidth(); closeMenu() }}>
-                Set Webview Max Width...
+                Set Webview Max Width…
               </div>
             )}
             {onOpenFeedUrl && (
@@ -102,7 +102,7 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
             )}
             {onMoveToFolder && (
               <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onMoveToFolder(); closeMenu() }}>
-                Move to Folder...
+                Move to Folder…
               </div>
             )}
             {onDelete && (
