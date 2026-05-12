@@ -7,7 +7,7 @@ import { Feed } from '../../hooks/useFeeds'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useWebviewTranslation, injectTranslationCss } from '../../hooks/useWebviewTranslation'
 import { useSummary } from '../../hooks/useSummary'
-import { useWebviewSummary, injectSummaryCss } from '../../hooks/useWebviewSummary'
+import { useWebviewSummary } from '../../hooks/useWebviewSummary'
 import { useTranslationSettings } from '../../hooks/useTranslationSettings'
 import { hljs } from '../../utils/highlight'
 import '../../styles/article-view.css'
@@ -30,8 +30,18 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
   const { isTranslating } = useTranslation(contentRef, article?.id, translationEnabled, contentVersion)
   const canSummarize = tSettings.provider === 'ai' && !!tSettings.aiApiKey
   const { summary, loading: summaryLoading, error: summaryError } = useSummary(
-    article?.id, article?.title, article?.content ?? undefined, summaryEnabled
+    article?.id, article?.title, article?.content ?? undefined, summaryEnabled && !useWebview
   )
+  const [wvSummaryState, setWvSummaryState] = useState<{ summary: string | null; loading: boolean; error: string | null }>({ summary: null, loading: false, error: null })
+
+  const summaryData = summaryEnabled
+    ? useWebview
+      ? wvSummaryState
+      : { loading: summaryLoading, summary, error: summaryError }
+    : null
+  const summaryPopup = summaryData && (summaryData.loading || summaryData.summary || summaryData.error)
+    ? <SummaryPopup {...summaryData} />
+    : null
 
   // Reset translation on article change
   useEffect(() => {
@@ -105,7 +115,16 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     return (
       <div className="article-view webview-container">
         {titlebar}
-        <WebviewView url={article.url!} webviewMaxWidth={feed!.webview_max_width ?? null} articleId={article.id} translationEnabled={translationEnabled} summaryEnabled={summaryEnabled} articleTitle={article.title} />
+        <WebviewView
+          url={article.url!}
+          webviewMaxWidth={feed!.webview_max_width ?? null}
+          articleId={article.id}
+          translationEnabled={translationEnabled}
+          summaryEnabled={summaryEnabled}
+          articleTitle={article.title}
+          onSummaryChange={setWvSummaryState}
+        />
+        {summaryPopup}
       </div>
     )
   }
@@ -114,16 +133,12 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     <div className="article-view">
       {titlebar}
       <ArticleHeader article={article} />
-      {summaryEnabled && (
-        <div className={`article-summary-card${summaryLoading ? ' loading' : ''}${summaryError ? ' error' : ''}`}>
-          {summaryLoading ? 'Summarizing...' : summaryError || summary}
-        </div>
-      )}
       <div
         ref={contentRef}
         className="article-content"
         data-cv={contentVersion}
       />
+      {summaryPopup}
     </div>
   )
 }
@@ -192,7 +207,7 @@ const initialWebviewState: WebviewState = {
   domReady: false,
 }
 
-function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled, summaryEnabled, articleTitle }: { url: string; webviewMaxWidth: number | null; articleId: number; translationEnabled: boolean; summaryEnabled: boolean; articleTitle: string }) {
+function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled, summaryEnabled, articleTitle, onSummaryChange }: { url: string; webviewMaxWidth: number | null; articleId: number; translationEnabled: boolean; summaryEnabled: boolean; articleTitle: string; onSummaryChange: (state: { summary: string | null; loading: boolean; error: string | null }) => void }) {
   const webviewRef = useRef<Electron.WebviewTag | null>(null)
   const initialLoadDone = useRef(false)
   const [wv, dispatch] = useReducer(
@@ -201,7 +216,12 @@ function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled, summ
   )
 
   useWebviewTranslation(webviewRef, articleId, translationEnabled, wv.domReady)
-  useWebviewSummary(webviewRef, articleId, articleTitle, summaryEnabled, wv.domReady)
+  const wvSummary = useWebviewSummary(webviewRef, articleId, articleTitle, summaryEnabled, wv.domReady)
+
+  useEffect(() => {
+    onSummaryChange(wvSummary)
+  }, [wvSummary, onSummaryChange])
+
   const refCallback = useCallback((el: Electron.WebviewTag | null) => {
     webviewRef.current = el
     if (!el) return
@@ -229,7 +249,6 @@ function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled, summ
     const onDomReady = () => {
       dispatch({ domReady: true })
       injectTranslationCss(el)
-      injectSummaryCss(el)
       // Intercept target="_blank" link clicks via window.open()
       // to trigger setWindowOpenHandler in main process
       el.executeJavaScript(`
@@ -415,6 +434,14 @@ function WebviewScrollbar({ webviewRef, scrollInfo }: {
           onMouseDown={handleThumbDown}
         />
       )}
+    </div>
+  )
+}
+
+function SummaryPopup({ loading, summary, error }: { loading: boolean; summary: string | null; error: string | null }) {
+  return (
+    <div className={`article-summary-popup${loading ? ' loading' : ''}${error ? ' error' : ''}`}>
+      {loading ? 'Summarizing...' : error || summary}
     </div>
   )
 }
