@@ -2,9 +2,42 @@ import { useEffect, useRef } from 'react'
 import { useTranslationSettings } from './useTranslationSettings'
 import { WEBVIEW_SUMMARY_CSS } from '../styles/webview-summary.css'
 
+const SUMMARY_ELEMENT_ID = '__feedwell-summary'
+
+const EXTRACT_TEXT_JS = `document.body.innerText.slice(0, 8000)`
+
 const CLEANUP_JS = `
-  const el = document.getElementById('__feedwell-summary');
-  if (el) el.remove();
+  try {
+    const el = document.getElementById('${SUMMARY_ELEMENT_ID}');
+    if (el) {
+      el.remove();
+    }
+  } catch (error) {
+    console.error('Error during cleanup:', error);
+  }
+`
+
+const SUMMARY_CREATION_JS = `
+  (() => {
+    let card = document.getElementById('${SUMMARY_ELEMENT_ID}');
+    console.log('Found summary element:', card);
+    if (!card) {
+      card = document.createElement('div');
+      card.id = '${SUMMARY_ELEMENT_ID}';
+      card.className = 'article-summary-card loading';
+      card.textContent = 'Summarizing...';
+
+      let header = document.querySelector('header');
+      if (header) {
+        if (getComputedStyle(header).position === 'fixed') {
+          card.style.marginTop = header.offsetHeight + 'px';
+        }
+        header.parentNode.insertBefore(card, header.nextSibling);
+      } else {
+        document.body.insertBefore(card, document.body.firstChild);
+      }
+    }
+  })()
 `
 
 export function useWebviewSummary(
@@ -17,50 +50,35 @@ export function useWebviewSummary(
   const { settings } = useTranslationSettings()
   const requestIdRef = useRef(0)
 
-  // Remove summary card on unmount
   useEffect(() => {
-    return () => {
-      const wv = webviewRef.current
-      if (wv) wv.executeJavaScript(CLEANUP_JS).catch(() => {})
+    if (!articleId || !title || !domReady || settings.provider !== 'ai' || !settings.aiApiKey) return
+
+    const wv = webviewRef.current
+    if (!wv) return
+
+    if (!enabled) {
+      console.log('Summary disabled, cleaning up...')
+      wv.executeJavaScript(CLEANUP_JS).then(() => {
+        console.log('Cleanup JS executed successfully')
+      }).catch((err) => {
+        console.error('Cleanup JS failed:', err)
+      })
+      return
     }
-  }, [webviewRef])
-
-  // Remove summary card when toggled off
-  useEffect(() => {
-    if (enabled || !domReady) return
-    const wv = webviewRef.current
-    if (!wv) return
-    wv.executeJavaScript(CLEANUP_JS).catch(() => {})
-  }, [enabled, domReady, webviewRef])
-
-  useEffect(() => {
-    if (!enabled || !articleId || !title || !domReady || settings.provider !== 'ai' || !settings.aiApiKey) return
-
-    const wv = webviewRef.current
-    if (!wv) return
 
     const requestId = ++requestIdRef.current
 
     const doSummarize = async () => {
       try {
-        const rawText = await wv.executeJavaScript(`
-          document.body.innerText.slice(0, 8000)
-        `)
+        const rawText = await wv.executeJavaScript(EXTRACT_TEXT_JS)
+
+        console.log('Extracted raw text for summarization:')
 
         if (requestIdRef.current !== requestId) return
 
-        await wv.executeJavaScript(`
-          (() => {
-            let card = document.getElementById('__feedwell-summary');
-            if (!card) {
-              card = document.createElement('div');
-              card.id = '__feedwell-summary';
-              card.className = 'article-summary-card loading';
-              card.textContent = 'Summarizing...';
-              document.body.insertBefore(card, document.body.firstChild);
-            }
-          })()
-        `)
+        console.log('Inserting summary card into webview...')
+
+        await wv.executeJavaScript(SUMMARY_CREATION_JS)
 
         if (requestIdRef.current !== requestId) return
 
@@ -70,7 +88,7 @@ export function useWebviewSummary(
 
         await wv.executeJavaScript(`
           (() => {
-            const card = document.getElementById('__feedwell-summary');
+            const card = document.getElementById('${SUMMARY_ELEMENT_ID}');
             if (card) {
               card.className = 'article-summary-card';
               card.textContent = ${JSON.stringify(summary)};
@@ -81,7 +99,7 @@ export function useWebviewSummary(
         if (requestIdRef.current !== requestId) return
         const msg = err instanceof Error ? err.message : 'Summarization failed'
         wv.executeJavaScript(`
-          const card = document.getElementById('__feedwell-summary');
+          const card = document.getElementById('${SUMMARY_ELEMENT_ID}');
           if (card) {
             card.className = 'article-summary-card error';
             card.textContent = ${JSON.stringify(msg)};
