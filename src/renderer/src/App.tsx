@@ -16,6 +16,7 @@ import { useReadingSettingsProvider, ReadingSettingsProvider } from './hooks/use
 import { useTranslationSettingsProvider, TranslationSettingsProvider } from './hooks/useTranslationSettings'
 import { PanelLeftClose, PanelLeft } from 'lucide-react'
 import './styles/global.css'
+import './styles/dialog.css'
 import './styles/stats.css'
 
 const SORT_STORAGE_KEY = 'feedwell-sort-order'
@@ -156,11 +157,9 @@ export default function App() {
           onToggleRead={markRead}
           feeds={feeds}
         />
-        {showAddFeed && (
-          <AddFeedDialog onAdd={handleAddFeed} onClose={() => setShowAddFeed(false)} />
-        )}
-        {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
-        {showStats && <StatsDialog onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />}
+        <AddFeedDialog open={showAddFeed} onAdd={handleAddFeed} onClose={() => setShowAddFeed(false)} />
+        <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
+        <StatsDialog open={showStats} onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />
       </div>
       </TranslationSettingsProvider>
       </ReadingSettingsProvider>

@@ -187,22 +187,20 @@ export default function Sidebar({ className, selectedFeedId, selectedFilter, act
         <button onClick={onShowSettings} title="Settings"><Settings size={15} /></button>
       </div>
 
-      {moveToFolderFeed && (
-        <MoveToFolderDialog
-          feedId={moveToFolderFeed.id}
-          currentFolderId={moveToFolderFeed.folder_id}
-          onMove={handleMoveToFolder}
-          onClose={() => setMoveToFolderFeed(null)}
-        />
-      )}
-      {webviewMaxWidthFeed && (
-        <WebviewMaxWidthDialog
-          feedId={webviewMaxWidthFeed.id}
-          currentMaxWidth={webviewMaxWidthFeed.webview_max_width}
-          onSet={handleSetWebviewMaxWidth}
-          onClose={() => setWebviewMaxWidthFeed(null)}
-        />
-      )}
+      <MoveToFolderDialog
+        open={!!moveToFolderFeed}
+        feedId={moveToFolderFeed?.id ?? 0}
+        currentFolderId={moveToFolderFeed?.folder_id ?? null}
+        onMove={handleMoveToFolder}
+        onClose={() => setMoveToFolderFeed(null)}
+      />
+      <WebviewMaxWidthDialog
+        open={!!webviewMaxWidthFeed}
+        feedId={webviewMaxWidthFeed?.id ?? 0}
+        currentMaxWidth={webviewMaxWidthFeed?.webview_max_width ?? null}
+        onSet={handleSetWebviewMaxWidth}
+        onClose={() => setWebviewMaxWidthFeed(null)}
+      />
     </aside>
   )
 }

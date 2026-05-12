@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { app, ipcMain, BrowserWindow } from 'electron'
 import { getDb } from '../db'
 import { fetchFeed, discoverFeed } from '../services/feed-fetcher'
 import { enqueue } from '../services/refresh-queue'
@@ -103,10 +103,17 @@ export function registerFeedIpc(): void {
   })
 }
 
+export function updateBadgeCount() {
+  if (process.platform !== 'darwin') return
+  const { count } = getDb().prepare('SELECT COUNT(*) as count FROM articles WHERE read = 0').get() as { count: number }
+  app.dock.setBadge(count > 0 ? String(count) : '')
+}
+
 export function notifyFeedsUpdated() {
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) win.webContents.send('feeds:updated')
   }
+  updateBadgeCount()
 }
 
 export function notifyArticlesUpdated() {

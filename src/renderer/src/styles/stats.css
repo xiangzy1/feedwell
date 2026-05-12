@@ -1,37 +1,5 @@
 .stats-dialog {
-  background: var(--bg-surface);
-  border-radius: 10px;
-  width: 860px;
   height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 8px 32px var(--shadow-color);
-}
-
-.stats-dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.stats-dialog-header h3 { margin: 0; font-size: 15px; }
-
-.stats-dialog-close {
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-.stats-dialog-close:hover { background: var(--bg-hover); }
-
-.stats-dialog-body {
-  padding: 20px;
-  overflow-y: auto;
 }
 
 /* Overview Cards */

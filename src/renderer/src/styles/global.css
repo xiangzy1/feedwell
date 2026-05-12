@@ -108,9 +108,6 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
 /* Selection */
 ::selection { background: var(--selection-bg); }
 
-/* Dialog overlay must be no-drag to be clickable */
-.dialog-overlay { -webkit-app-region: no-drag; }
-
 /* Resize handle */
 .resize-handle {
   width: 4px;

@@ -1,0 +1,194 @@
+/* ===== Dialog Overlay ===== */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  -webkit-app-region: no-drag;
+
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.dialog-overlay[data-state="open"] {
+  opacity: 1;
+}
+
+/* ===== Dialog Container ===== */
+
+.dialog {
+  background: var(--bg-surface);
+  border-radius: 10px;
+  padding: 20px;
+  width: 380px;
+  box-shadow: 0 8px 32px var(--shadow-color);
+
+  opacity: 0;
+  transform: scale(0.97) translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dialog-overlay[data-state="open"] .dialog {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* ===== Scrollable Variant ===== */
+
+.dialog-scrollable {
+  max-height: 80vh;
+  width: 400px;
+}
+
+.dialog-scrollable-content {
+  overflow-y: auto;
+  max-height: calc(80vh - 56px);
+}
+
+/* ===== Header ===== */
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.dialog-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.dialog-close:hover { background: var(--bg-hover); }
+
+.dialog-scrollable .dialog-header {
+  margin-bottom: 0;
+  padding-bottom: 12px;
+}
+
+/* ===== Sticky Footer ===== */
+
+.dialog-sticky-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-surface);
+  padding-top: 12px;
+  margin-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ===== Inputs ===== */
+
+.dialog-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+.dialog-input:focus { border-color: var(--accent); }
+
+select.dialog-input {
+  appearance: none;
+  background: var(--bg-surface);
+  cursor: pointer;
+}
+
+/* ===== Option Groups ===== */
+
+.dialog-option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dialog-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dialog-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== Field Labels ===== */
+
+.dialog-field-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+/* ===== Error ===== */
+
+.dialog-error { color: var(--danger); font-size: 12px; margin-top: 6px; }
+
+/* ===== Actions ===== */
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ===== Buttons ===== */
+
+.btn-primary, .btn-secondary {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:disabled { opacity: 0.5; }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+
+/* ===== Test Connection ===== */
+
+.dialog-test-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.dialog-test-btn:hover { background: var(--bg-secondary); }
+.dialog-test-btn:disabled { opacity: 0.5; cursor: default; }
+
+.dialog-feedback { margin-left: 8px; font-size: 12px; }
+.dialog-feedback.success { color: #2e7d32; }
+.dialog-feedback.error { color: var(--danger, #d32f2f); }
+[data-theme="dark"] .dialog-feedback.success { color: #66bb6a; }
+
+/* ===== Dark theme adjustments ===== */
+
+[data-theme="dark"] .dialog-sticky-footer {
+  background: var(--bg-surface);
+}

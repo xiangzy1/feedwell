@@ -3,7 +3,7 @@ import { join } from 'path'
 import { initDatabase } from './db'
 import { getSetting, getSettingJson, setSetting } from './ipc/settings'
 import { startScheduler, stopScheduler, isRunning, onResume } from './services/scheduler'
-import { registerFeedIpc } from './ipc/feeds'
+import { registerFeedIpc, updateBadgeCount } from './ipc/feeds'
 import { registerArticleIpc } from './ipc/articles'
 import { registerFolderIpc } from './ipc/folders'
 import { registerSettingsIpc } from './ipc/settings'
@@ -81,6 +81,7 @@ app.whenReady().then(() => {
   })
   ensureIconsDir()
   initDatabase()
+  updateBadgeCount()
   registerFeedIpc()
   registerArticleIpc()
   registerFolderIpc()

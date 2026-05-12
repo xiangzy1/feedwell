@@ -1,6 +1,8 @@
 import { useReducer, useEffect } from 'react'
+import Dialog from '../Dialog'
 
 interface Props {
+  open: boolean
   onAdd: (url: string, folderId?: number) => void
   onClose: () => void
 }
@@ -15,15 +17,15 @@ type State = {
   newFolderName: string
 }
 
-export default function AddFeedDialog({ onAdd, onClose }: Props) {
+export default function AddFeedDialog({ open, onAdd, onClose }: Props) {
   const [state, setState] = useReducer(
     (prev: State, next: Partial<State>) => ({ ...prev, ...next }),
     { url: '', loading: false, error: '', folders: [], selectedFolderId: null, showNewFolder: false, newFolderName: '' }
   )
 
   useEffect(() => {
-    window.api.folders.list().then(folders => setState({ folders }))
-  }, [])
+    if (open) window.api.folders.list().then(folders => setState({ folders }))
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,49 +57,46 @@ export default function AddFeedDialog({ onAdd, onClose }: Props) {
   }
 
   return (
-    <div className="dialog-overlay" role="none" onClick={onClose} onKeyDown={e => { if (e.key === 'Escape') onClose() }}>
-      <div className="dialog" role="dialog" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
-        <h3>Add Feed</h3>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="url"
-            placeholder="Enter website or feed URL"
-            value={state.url}
-            onChange={e => setState({ url: e.target.value })}
+    <Dialog open={open} onClose={onClose} title="Add Feed">
+      <form onSubmit={handleSubmit}>
+        <input
+          type="url"
+          placeholder="Enter website or feed URL"
+          value={state.url}
+          onChange={e => setState({ url: e.target.value })}
+          className="dialog-input"
+        />
+        <div style={{ marginTop: 10 }}>
+          <select
             className="dialog-input"
+            value={state.showNewFolder ? '__new__' : (state.selectedFolderId ?? '')}
+            onChange={e => handleFolderChange(e.target.value)}
+          >
+            <option value="">No folder</option>
+            {state.folders.map(f => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+            <option value="__new__">New folder…</option>
+          </select>
+        </div>
+        {state.showNewFolder && (
+          <input
+            type="text"
+            placeholder="Folder name"
+            value={state.newFolderName}
+            onChange={e => setState({ newFolderName: e.target.value })}
+            className="dialog-input"
+            style={{ marginTop: 8 }}
           />
-          <div style={{ marginTop: 10 }}>
-            <select
-              className="dialog-input"
-              value={state.showNewFolder ? '__new__' : (state.selectedFolderId ?? '')}
-              onChange={e => handleFolderChange(e.target.value)}
-            >
-              <option value="">No folder</option>
-              {state.folders.map(f => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-              <option value="__new__">New folder…</option>
-            </select>
-          </div>
-          {state.showNewFolder && (
-            <input
-              type="text"
-              placeholder="Folder name"
-              value={state.newFolderName}
-              onChange={e => setState({ newFolderName: e.target.value })}
-              className="dialog-input"
-              style={{ marginTop: 8 }}
-            />
-          )}
-          {state.error && <div className="dialog-error">{state.error}</div>}
-          <div className="dialog-actions">
-            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={state.loading || !state.url.trim() || (state.showNewFolder && !state.newFolderName.trim())} className="btn-primary">
-              {state.loading ? 'Adding…' : 'Add'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        )}
+        {state.error && <div className="dialog-error">{state.error}</div>}
+        <div className="dialog-actions">
+          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+          <button type="submit" disabled={state.loading || !state.url.trim() || (state.showNewFolder && !state.newFolderName.trim())} className="btn-primary">
+            {state.loading ? 'Adding…' : 'Add'}
+          </button>
+        </div>
+      </form>
+    </Dialog>
   )
 }

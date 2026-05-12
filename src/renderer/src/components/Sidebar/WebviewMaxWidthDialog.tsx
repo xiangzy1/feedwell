@@ -1,93 +1,68 @@
 import { useState } from 'react'
+import Dialog from '../Dialog'
 
 interface Props {
+  open: boolean
   feedId: number
   currentMaxWidth: number | null
   onSet: (feedId: number, width: number | null) => void
   onClose: () => void
 }
 
-export default function WebviewMaxWidthDialog({ feedId, currentMaxWidth, onSet, onClose }: Props) {
-  const presets = [800, 1024, 1280]
-  const isPreset = currentMaxWidth !== null && presets.includes(currentMaxWidth)
-  const [showCustom, setShowCustom] = useState(currentMaxWidth !== null && !isPreset)
-  const [customValue, setCustomValue] = useState(isPreset ? '' : String(currentMaxWidth ?? ''))
+export default function WebviewMaxWidthDialog({ open, feedId, currentMaxWidth, onSet, onClose }: Props) {
+  const [customValue, setCustomValue] = useState(
+    currentMaxWidth !== null ? String(currentMaxWidth) : ''
+  )
 
   const handleSelect = (width: number | null) => {
     onSet(feedId, width)
     onClose()
   }
 
-  const handleCustom = () => {
-    const val = Number(customValue)
-    if (!customValue || val < 400) return
-    onSet(feedId, val)
-    onClose()
+  const handleCustomChange = (value: string) => {
+    setCustomValue(value)
+  }
+
+  const applyCustom = () => {
+    const num = Number(customValue)
+    if (customValue && num >= 400) onSet(feedId, num)
   }
 
   return (
-    <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog" onClick={e => e.stopPropagation()} style={{ width: 280 }}>
-        <h3>Webview Max Width</h3>
-        <div style={{ maxHeight: 240, overflowY: 'auto' }}>
-          <div
-            className={`context-menu-item ${currentMaxWidth === null ? 'active' : ''}`}
-            style={{ borderRadius: 4, margin: '2px 0' }}
-            onClick={() => handleSelect(null)}
-          >
-            None (full width)
-          </div>
-          {presets.map(w => (
-            <div
-              key={w}
-              className={`context-menu-item ${currentMaxWidth === w ? 'active' : ''}`}
-              style={{ borderRadius: 4, margin: '2px 0' }}
-              onClick={() => handleSelect(w)}
-            >
-              {w}px
-            </div>
-          ))}
-          {!isPreset && currentMaxWidth !== null && (
-            <div
-              className="context-menu-item active"
-              style={{ borderRadius: 4, margin: '2px 0' }}
-              onClick={() => { setShowCustom(true); setCustomValue(String(currentMaxWidth)) }}
-            >
-              {currentMaxWidth}px (custom)
-            </div>
-          )}
+    <Dialog open={open} onClose={onClose} title="Webview Max Width" width={280}>
+      <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+        <div
+          className={`context-menu-item ${currentMaxWidth === null ? 'active' : ''}`}
+          style={{ borderRadius: 4, margin: '2px 0' }}
+          onClick={() => handleSelect(null)}
+        >
+          None (full width)
         </div>
-        {!showCustom ? (
-          <button
-            className="btn-secondary"
-            style={{ width: '100%', marginTop: 8 }}
-            onClick={() => setShowCustom(true)}
-          >
-            Custom…
-          </button>
-        ) : (
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-            <input
-              type="number"
-              placeholder="Width in px"
-              value={customValue}
-              onChange={e => setCustomValue(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleCustom() }}
-              autoFocus
-              className="dialog-input"
-              style={{ flex: 1 }}
-              min={400}
-            />
-            <button
-              className="btn-primary"
-              onClick={handleCustom}
-              disabled={!customValue || Number(customValue) < 400}
-            >
-              Set
-            </button>
-          </div>
-        )}
+        <div
+          className={`context-menu-item ${currentMaxWidth === 800 ? 'active' : ''}`}
+          style={{ borderRadius: 4, margin: '2px 0' }}
+          onClick={() => handleSelect(800)}
+        >
+          800px
+        </div>
+        <div
+          className="context-menu-item no-hover"
+          style={{ borderRadius: 4, margin: '2px 0', display: 'flex', alignItems: 'center', gap: 8 }}
+        >
+          <input
+            type="number"
+            placeholder="Custom"
+            value={customValue}
+            onChange={e => handleCustomChange(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') applyCustom() }}
+            onBlur={applyCustom}
+            onClick={e => e.stopPropagation()}
+            className="webview-custom-input"
+            min={400}
+          />
+          <span>px</span>
+        </div>
       </div>
-    </div>
+    </Dialog>
   )
 }
