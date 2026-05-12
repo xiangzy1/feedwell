@@ -43,6 +43,9 @@ const api = {
     translate: (articleId: number, texts: string[]) => ipcRenderer.invoke('translation:translate', { articleId, texts }),
     testConnection: () => ipcRenderer.invoke('translation:testConnection')
   },
+  summary: {
+    summarize: (articleId: number, title: string, content: string) => ipcRenderer.invoke('summary:summarize', { articleId, title, content })
+  },
   onFeedsUpdated: (callback: () => void) => onChannel('feeds:updated', callback),
   onArticlesUpdated: (callback: () => void) => onChannel('articles:updated', callback),
   onRefreshProgress: (callback: (progress: { current: number; total: number }) => void) => {

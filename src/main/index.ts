@@ -10,6 +10,7 @@ import { registerSettingsIpc } from './ipc/settings'
 import { registerOpmlIpc } from './ipc/opml'
 import { registerStatsIpc } from './ipc/stats'
 import { registerTranslationIpc } from './ipc/translation'
+import { registerSummaryIpc } from './ipc/summary'
 import { ensureIconsDir, downloadAndCacheIcon, findCachedFile } from './services/favicon'
 
 const isDev = !app.isPackaged
@@ -87,6 +88,7 @@ app.whenReady().then(() => {
   registerOpmlIpc()
   registerStatsIpc()
   registerTranslationIpc()
+  registerSummaryIpc()
   ipcMain.handle('app:isColdStart', () => isColdStart)
   createMainWindow()
   startScheduler()

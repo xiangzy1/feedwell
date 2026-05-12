@@ -6,6 +6,8 @@ import { Article } from '../../hooks/useArticles'
 import { Feed } from '../../hooks/useFeeds'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useWebviewTranslation, injectTranslationCss } from '../../hooks/useWebviewTranslation'
+import { useSummary } from '../../hooks/useSummary'
+import { useWebviewSummary, injectSummaryCss } from '../../hooks/useWebviewSummary'
 import { useTranslationSettings } from '../../hooks/useTranslationSettings'
 import { hljs } from '../../utils/highlight'
 import '../../styles/article-view.css'
@@ -23,12 +25,18 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
   const contentRef = useRef<HTMLDivElement>(null)
   const [contentVersion, setContentVersion] = useState(0)
   const [translationEnabled, setTranslationEnabled] = useState(false)
+  const [summaryEnabled, setSummaryEnabled] = useState(false)
   const { settings: tSettings } = useTranslationSettings()
   const { isTranslating } = useTranslation(contentRef, article?.id, translationEnabled, contentVersion)
+  const canSummarize = tSettings.provider === 'ai' && !!tSettings.aiApiKey
+  const { summary, loading: summaryLoading, error: summaryError } = useSummary(
+    article?.id, article?.title, article?.content ?? undefined, summaryEnabled
+  )
 
   // Reset translation on article change
   useEffect(() => {
     setTranslationEnabled(false)
+    setSummaryEnabled(false)
   }, [article?.id])
 
   useEffect(() => {
@@ -77,6 +85,9 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
       onOpenExternal={article && article.url ? () => window.api.openExternal(article.url!) : () => {}}
       translationEnabled={translationEnabled}
       onToggleTranslation={() => setTranslationEnabled(prev => !prev)}
+      summaryEnabled={summaryEnabled}
+      onToggleSummary={() => setSummaryEnabled(prev => !prev)}
+      canSummarize={canSummarize}
       isWebview={!!useWebview}
     />
   )
@@ -94,7 +105,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     return (
       <div className="article-view webview-container">
         {titlebar}
-        <WebviewView url={article.url!} webviewMaxWidth={feed!.webview_max_width ?? null} articleId={article.id} translationEnabled={translationEnabled} />
+        <WebviewView url={article.url!} webviewMaxWidth={feed!.webview_max_width ?? null} articleId={article.id} translationEnabled={translationEnabled} summaryEnabled={summaryEnabled} articleTitle={article.title} />
       </div>
     )
   }
@@ -103,6 +114,11 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     <div className="article-view">
       {titlebar}
       <ArticleHeader article={article} />
+      {summaryEnabled && (
+        <div className={`article-summary-card${summaryLoading ? ' loading' : ''}${summaryError ? ' error' : ''}`}>
+          {summaryLoading ? 'Summarizing...' : summaryError || summary}
+        </div>
+      )}
       <div
         ref={contentRef}
         className="article-content"
@@ -176,7 +192,7 @@ const initialWebviewState: WebviewState = {
   domReady: false,
 }
 
-function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled }: { url: string; webviewMaxWidth: number | null; articleId: number; translationEnabled: boolean }) {
+function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled, summaryEnabled, articleTitle }: { url: string; webviewMaxWidth: number | null; articleId: number; translationEnabled: boolean; summaryEnabled: boolean; articleTitle: string }) {
   const webviewRef = useRef<Electron.WebviewTag | null>(null)
   const initialLoadDone = useRef(false)
   const [wv, dispatch] = useReducer(
@@ -185,6 +201,7 @@ function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled }: { 
   )
 
   useWebviewTranslation(webviewRef, articleId, translationEnabled, wv.domReady)
+  useWebviewSummary(webviewRef, articleId, articleTitle, summaryEnabled, wv.domReady)
   const refCallback = useCallback((el: Electron.WebviewTag | null) => {
     webviewRef.current = el
     if (!el) return
@@ -212,6 +229,7 @@ function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled }: { 
     const onDomReady = () => {
       dispatch({ domReady: true })
       injectTranslationCss(el)
+      injectSummaryCss(el)
       // Intercept target="_blank" link clicks via window.open()
       // to trigger setWindowOpenHandler in main process
       el.executeJavaScript(`

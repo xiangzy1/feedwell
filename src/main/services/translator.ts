@@ -1,11 +1,9 @@
 import { createHash } from 'crypto'
+import { callOpenAI, type OpenAIConfig } from './openai-client'
 
-export interface TranslationConfig {
+export interface TranslationConfig extends OpenAIConfig {
   provider: 'ai' | 'google' | 'microsoft'
   targetLang: string
-  aiBaseUrl?: string
-  aiApiKey?: string
-  aiModel?: string
   googleApiKey?: string
   microsoftApiKey?: string
   microsoftRegion?: string
@@ -26,36 +24,10 @@ export async function translateTexts(texts: string[], config: TranslationConfig)
 }
 
 async function translateViaAI(texts: string[], config: TranslationConfig): Promise<string[]> {
-  const baseUrl = (config.aiBaseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '')
-  const model = config.aiModel || 'gpt-4o-mini'
-  const prompt = `Translate the following texts to ${config.targetLang}. Return a JSON array of translated strings in the same order. Only return the JSON array, nothing else.`
-
-  const body = {
-    model,
-    messages: [
-      { role: 'system', content: prompt },
-      { role: 'user', content: JSON.stringify(texts) }
-    ],
-    temperature: 0.3
-  }
-
-  const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.aiApiKey}`
-    },
-    body: JSON.stringify(body)
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`AI API error ${res.status}: ${text.slice(0, 200)}`)
-  }
-
-  const data = await res.json()
-  const content = data.choices?.[0]?.message?.content
-  if (!content) throw new Error('Empty response from AI')
+  const content = await callOpenAI(config, [
+    { role: 'system', content: `Translate the following texts to ${config.targetLang}. Return a JSON array of translated strings in the same order. Only return the JSON array, nothing else.` },
+    { role: 'user', content: JSON.stringify(texts) }
+  ], 0.3)
 
   const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
   const parsed = JSON.parse(cleaned)

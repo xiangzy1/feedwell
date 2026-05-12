@@ -1,4 +1,4 @@
-import { Star, Circle, Compass, Languages } from 'lucide-react'
+import { Star, Circle, Compass, Languages, FileText } from 'lucide-react'
 import { Article } from '../../hooks/useArticles'
 
 interface Props {
@@ -8,10 +8,13 @@ interface Props {
   onOpenExternal: () => void
   translationEnabled?: boolean
   onToggleTranslation?: () => void
+  summaryEnabled?: boolean
+  onToggleSummary?: () => void
+  canSummarize?: boolean
   isWebview?: boolean
 }
 
-export default function ArticleViewTitlebar({ article, onToggleRead, onToggleStar, onOpenExternal, translationEnabled, onToggleTranslation, isWebview }: Props) {
+export default function ArticleViewTitlebar({ article, onToggleRead, onToggleStar, onOpenExternal, translationEnabled, onToggleTranslation, summaryEnabled, onToggleSummary, canSummarize, isWebview }: Props) {
   return (
     <div className="article-view-titlebar">
       <div className="article-view-titlebar-actions">
@@ -29,6 +32,16 @@ export default function ArticleViewTitlebar({ article, onToggleRead, onToggleSta
             className={translationEnabled ? 'titlebar-btn-active' : undefined}
           >
             <Languages size={14} />
+          </button>
+        )}
+        {onToggleSummary && canSummarize && (
+          <button
+            onClick={onToggleSummary}
+            title={summaryEnabled ? 'Hide summary' : 'Summarize article'}
+            disabled={!article}
+            className={summaryEnabled ? 'titlebar-btn-active' : undefined}
+          >
+            <FileText size={14} />
           </button>
         )}
         <button onClick={onOpenExternal} title="Open in browser" disabled={!article}>

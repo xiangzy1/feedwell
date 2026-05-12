@@ -39,6 +39,9 @@ declare global {
         translate: (articleId: number, texts: string[]) => Promise<string[]>
         testConnection: () => Promise<boolean>
       }
+      summary: {
+        summarize: (articleId: number, title: string, content: string) => Promise<string>
+      }
       onFeedsUpdated: (callback: () => void) => () => void
       onArticlesUpdated: (callback: () => void) => () => void
       onRefreshProgress: (callback: (progress: { current: number; total: number }) => void) => () => void
