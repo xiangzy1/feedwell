@@ -147,8 +147,8 @@ export default function App() {
           selectedFilter={selectedFilter}
           activeFeedId={activeFeedId}
           refreshProgress={refreshProgress}
-          onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }}
-          onSelectFilter={(filter) => { setSelectedFilter(filter); setSelectedFeedId(null) }}
+          onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null); setSelectedId(null) }}
+          onSelectFilter={(filter) => { setSelectedFilter(filter); setSelectedFeedId(null); setSelectedId(null) }}
           onShowAddFeed={() => setShowAddFeed(true)}
           onShowSettings={() => setShowSettings(true)}
           onShowStats={() => setShowStats(true)}
