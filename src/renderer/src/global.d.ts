@@ -35,6 +35,9 @@ declare global {
         get: (key: string) => Promise<any>
         set: (key: string, value: unknown) => Promise<void>
       }
+      scheduler: {
+        reschedule: () => Promise<void>
+      }
       translation: {
         translate: (articleId: number, texts: string[]) => Promise<string[]>
         testConnection: () => Promise<boolean>
@@ -53,6 +56,7 @@ declare global {
       onMenuAddFeed: (callback: () => void) => () => void
       onMenuImportOpml: (callback: () => void) => () => void
       onMenuExportOpml: (callback: () => void) => () => void
+      onMenuSettings: (callback: () => void) => () => void
     }
   }
 }

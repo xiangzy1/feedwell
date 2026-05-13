@@ -1,5 +1,6 @@
 .stats-dialog {
   height: 80vh;
+  overflow: hidden;
 }
 
 /* Overview Cards */

@@ -1,7 +1,22 @@
 import { getDb } from '../db'
 import { enqueue } from './refresh-queue'
 
-const REFRESH_INTERVAL = 30 * 60 * 1000
+type RefreshInterval = 0 | 30 | 60 | 120 | 240 | 480
+
+const DEFAULT_INTERVAL: RefreshInterval = 30
+
+function getIntervalMinutes(): RefreshInterval {
+  try {
+    const row = getDb().prepare("SELECT value FROM settings WHERE key = 'feedwell-refresh-settings'").get() as { value: string } | undefined
+    if (!row) return DEFAULT_INTERVAL
+    const parsed = JSON.parse(row.value)
+    const val = parsed?.interval
+    if ([0, 30, 60, 120, 240, 480].includes(val)) return val
+    return DEFAULT_INTERVAL
+  } catch {
+    return DEFAULT_INTERVAL
+  }
+}
 
 let globalTimer: NodeJS.Timeout | null = null
 let running = false
@@ -25,10 +40,20 @@ export function isRunning(): boolean {
   return running
 }
 
+export function rescheduleScheduler(): void {
+  if (globalTimer) {
+    clearTimeout(globalTimer)
+    globalTimer = null
+  }
+  if (running) scheduleNext()
+}
+
 /** Called on system wake — refresh immediately if enough time has elapsed. */
 export function onResume(): void {
   if (!running) return
-  if (Date.now() - lastRefreshAt < REFRESH_INTERVAL) return
+  const intervalMs = getIntervalMinutes() * 60 * 1000
+  if (intervalMs === 0) return
+  if (Date.now() - lastRefreshAt < intervalMs) return
 
   if (globalTimer) {
     clearTimeout(globalTimer)
@@ -52,8 +77,10 @@ function doRefresh(): void {
 
 function scheduleNext(): void {
   if (!running) return
+  const intervalMs = getIntervalMinutes() * 60 * 1000
+  if (intervalMs === 0) return
   globalTimer = setTimeout(() => {
     if (!running) return
     doRefresh()
-  }, REFRESH_INTERVAL)
+  }, intervalMs)
 }

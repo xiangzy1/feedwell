@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
+import { rescheduleScheduler } from '../services/scheduler'
 const stmtGet = () => getDb().prepare('SELECT value FROM settings WHERE key = ?')
 const stmtSet = () => getDb().prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
 
@@ -22,4 +23,5 @@ export function registerSettingsIpc(): void {
   ipcMain.handle('settings:set', (_event, key: string, value: unknown) => {
     setSetting(key, value)
   })
+  ipcMain.handle('scheduler:reschedule', () => rescheduleScheduler())
 }

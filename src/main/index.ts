@@ -125,6 +125,7 @@ function setupMenu(win: BrowserWindow) {
       label: 'Feedwell',
       submenu: [
         { role: 'about' },
+        { label: 'Settings...', accelerator: 'CmdOrCtrl+,', click: () => win.webContents.send('menu:settings') },
         { type: 'separator' },
         { role: 'hide' },
         { role: 'hideOthers' },

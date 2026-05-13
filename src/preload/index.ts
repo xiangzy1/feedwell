@@ -39,6 +39,9 @@ const api = {
     get: (key: string) => ipcRenderer.invoke('settings:get', key),
     set: (key: string, value: unknown) => ipcRenderer.invoke('settings:set', key, value)
   },
+  scheduler: {
+    reschedule: () => ipcRenderer.invoke('scheduler:reschedule')
+  },
   translation: {
     translate: (articleId: number, texts: string[]) => ipcRenderer.invoke('translation:translate', { articleId, texts }),
     testConnection: () => ipcRenderer.invoke('translation:testConnection')
@@ -64,7 +67,8 @@ const api = {
   isColdStart: () => ipcRenderer.invoke('app:isColdStart'),
   onMenuAddFeed: (callback: () => void) => onChannel('menu:addFeed', callback),
   onMenuImportOpml: (callback: () => void) => onChannel('menu:importOpml', callback),
-  onMenuExportOpml: (callback: () => void) => onChannel('menu:exportOpml', callback)
+  onMenuExportOpml: (callback: () => void) => onChannel('menu:exportOpml', callback),
+  onMenuSettings: (callback: () => void) => onChannel('menu:settings', callback)
 }
 
 contextBridge.exposeInMainWorld('api', api)

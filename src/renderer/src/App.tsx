@@ -14,6 +14,7 @@ import { SortOrder } from './components/ArticleList/ArticleList'
 import { useThemeProvider, ThemeProvider } from './hooks/useTheme'
 import { useReadingSettingsProvider, ReadingSettingsProvider } from './hooks/useReadingSettings'
 import { useTranslationSettingsProvider, TranslationSettingsProvider } from './hooks/useTranslationSettings'
+import { useRefreshSettingsProvider, RefreshSettingsProvider } from './hooks/useRefreshSettings'
 import { PanelLeftClose, PanelLeft } from 'lucide-react'
 import './styles/global.css'
 import './styles/dialog.css'
@@ -51,6 +52,7 @@ export default function App() {
   const themeCtx = useThemeProvider()
   const readingCtx = useReadingSettingsProvider()
   const translationCtx = useTranslationSettingsProvider()
+  const refreshCtx = useRefreshSettingsProvider()
   const { feeds, reload: reloadFeeds } = useFeeds()
   const { articles, selectedId, setSelectedId, markRead, markStarred, markAllRead } = useArticles({
     feedId: selectedFeedId,
@@ -89,6 +91,10 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    return window.api.onMenuSettings(() => setShowSettings(true))
+  }, [])
+
+  useEffect(() => {
     return window.api.onMenuImportOpml(async () => {
       await window.api.opml.import()
       await window.api.feeds.refresh()
@@ -120,6 +126,7 @@ export default function App() {
     <ThemeProvider value={themeCtx}>
       <ReadingSettingsProvider value={readingCtx}>
       <TranslationSettingsProvider value={translationCtx}>
+      <RefreshSettingsProvider value={refreshCtx}>
       <div className="app">
         <button className="sidebar-toggle" onClick={toggleSidebar}>
           {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
@@ -161,6 +168,7 @@ export default function App() {
         <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
         <StatsDialog open={showStats} onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />
       </div>
+      </RefreshSettingsProvider>
       </TranslationSettingsProvider>
       </ReadingSettingsProvider>
     </ThemeProvider>

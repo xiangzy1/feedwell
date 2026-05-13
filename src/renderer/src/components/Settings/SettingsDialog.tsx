@@ -3,6 +3,7 @@ import Dialog from '../Dialog'
 import { useTheme, type Theme } from '../../hooks/useTheme'
 import { useReadingSettings, type ReadingSettings } from '../../hooks/useReadingSettings'
 import { useTranslationSettings, type TranslationSettings } from '../../hooks/useTranslationSettings'
+import { useRefreshSettings, type RefreshInterval } from '../../hooks/useRefreshSettings'
 import './SettingsDialog.css'
 
 const themeOptions: { value: Theme; label: string }[] = [
@@ -39,6 +40,15 @@ const languages = [
   { value: 'it', label: 'Italian' },
 ]
 
+const refreshIntervalOptions: { value: RefreshInterval; label: string }[] = [
+  { value: 0, label: 'Manual' },
+  { value: 30, label: 'Every 30 minutes' },
+  { value: 60, label: 'Every hour' },
+  { value: 120, label: 'Every 2 hours' },
+  { value: 240, label: 'Every 4 hours' },
+  { value: 480, label: 'Every 8 hours' },
+]
+
 type Tab = 'appearance' | 'reading' | 'translation' | 'api'
 
 const tabs: { id: Tab; label: string }[] = [
@@ -57,6 +67,7 @@ export default function SettingsDialog({ open, onClose }: Props) {
   const { theme, setTheme } = useTheme()
   const { settings, updateSettings, limits } = useReadingSettings()
   const { settings: tSettings, updateSettings: updateTSettings } = useTranslationSettings()
+  const { settings: rSettings, updateSettings: updateRSettings } = useRefreshSettings()
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
   const [activeTab, setActiveTab] = useState<Tab>('appearance')
@@ -124,6 +135,18 @@ export default function SettingsDialog({ open, onClose }: Props) {
                     />
                   </label>
                 ))}
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <label className="dialog-field-label">Feed Refresh</label>
+                <select
+                  className="dialog-input"
+                  value={rSettings.interval}
+                  onChange={e => updateRSettings({ interval: Number(e.target.value) as RefreshInterval })}
+                >
+                  {refreshIntervalOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
           )}
