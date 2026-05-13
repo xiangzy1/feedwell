@@ -44,7 +44,12 @@ const api = {
     testConnection: () => ipcRenderer.invoke('translation:testConnection')
   },
   summary: {
-    summarize: (articleId: number, title: string, content: string) => ipcRenderer.invoke('summary:summarize', { articleId, title, content })
+    summarize: (articleId: number, title: string, content: string) => ipcRenderer.invoke('summary:summarize', { articleId, title, content }),
+    onSummaryChunk: (callback: (data: { articleId: number; delta: string }) => void) => {
+      const handler = (_e: any, data: { articleId: number; delta: string }) => callback(data)
+      ipcRenderer.on('summary:chunk', handler)
+      return () => ipcRenderer.removeListener('summary:chunk', handler)
+    }
   },
   onFeedsUpdated: (callback: () => void) => onChannel('feeds:updated', callback),
   onArticlesUpdated: (callback: () => void) => onChannel('articles:updated', callback),

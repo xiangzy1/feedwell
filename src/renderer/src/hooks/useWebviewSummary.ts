@@ -38,10 +38,16 @@ export function useWebviewSummary(
     setState({ summary: null, loading: true, error: null })
 
     const doSummarize = async () => {
+      let chunkCleanup: (() => void) | undefined
       try {
         const rawText = await wv.executeJavaScript(EXTRACT_TEXT_JS)
         if (requestIdRef.current !== requestId) return
 
+        chunkCleanup = window.api.summary.onSummaryChunk((data) => {
+          if (requestIdRef.current !== requestId) return
+          if (data.articleId !== articleId) return
+          setState(prev => ({ ...prev, summary: (prev.summary ?? '') + data.delta }))
+        })
         const summary = await window.api.summary.summarize(articleId, title, rawText)
         if (requestIdRef.current !== requestId) return
 
@@ -50,6 +56,8 @@ export function useWebviewSummary(
         if (requestIdRef.current !== requestId) return
         const msg = err instanceof Error ? err.message : 'Summarization failed'
         setState({ summary: null, loading: false, error: msg })
+      } finally {
+        chunkCleanup?.()
       }
     }
 

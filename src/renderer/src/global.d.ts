@@ -41,6 +41,7 @@ declare global {
       }
       summary: {
         summarize: (articleId: number, title: string, content: string) => Promise<string>
+        onSummaryChunk: (callback: (data: { articleId: number; delta: string }) => void) => () => void
       }
       onFeedsUpdated: (callback: () => void) => () => void
       onArticlesUpdated: (callback: () => void) => () => void

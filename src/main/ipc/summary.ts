@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { getSettingJson } from './settings'
-import { summarizeText, type SummaryConfig } from '../services/summarizer'
+import { summarizeText, streamSummarizeText, type SummaryConfig } from '../services/summarizer'
 
 function loadConfig(): SummaryConfig & { provider: string } {
   const raw = getSettingJson<Record<string, string>>('feedwell-translation-settings')
@@ -16,7 +16,7 @@ function loadConfig(): SummaryConfig & { provider: string } {
 }
 
 export function registerSummaryIpc(): void {
-  ipcMain.handle('summary:summarize', async (_event, { articleId, title, content }: { articleId: number; title: string; content: string }) => {
+  ipcMain.handle('summary:summarize', async (event, { articleId, title, content }: { articleId: number; title: string; content: string }) => {
     if (!title && !content) return ''
 
     const config = loadConfig()
@@ -30,7 +30,9 @@ export function registerSummaryIpc(): void {
 
     if (cached) return cached.summary
 
-    const summary = await summarizeText(title, content, config)
+    const summary = await streamSummarizeText(title, content, config, (delta) => {
+      event.sender.send('summary:chunk', { articleId, delta })
+    })
 
     db.prepare(
       'INSERT OR IGNORE INTO summaries (article_id, target_lang, summary) VALUES (?, ?, ?)'

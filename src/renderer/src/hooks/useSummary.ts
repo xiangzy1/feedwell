@@ -26,15 +26,24 @@ export function useSummary(
     setLoading(true)
 
     const doSummarize = async () => {
+      let chunkCleanup: (() => void) | undefined
       try {
+        chunkCleanup = window.api.summary.onSummaryChunk((data) => {
+          if (requestIdRef.current !== requestId) return
+          if (data.articleId !== articleId) return
+          setSummary(prev => (prev ?? '') + data.delta)
+        })
         const result = await window.api.summary.summarize(articleId, title, content || '')
         if (requestIdRef.current !== requestId) return
         setSummary(result)
         setLoading(false)
       } catch (err) {
         if (requestIdRef.current !== requestId) return
+        setSummary(null)
         setError(err instanceof Error ? err.message : 'Summarization failed')
         setLoading(false)
+      } finally {
+        chunkCleanup?.()
       }
     }
 

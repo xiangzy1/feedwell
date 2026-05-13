@@ -439,9 +439,7 @@ function WebviewScrollbar({ webviewRef, scrollInfo }: {
 }
 
 function SummaryPopup({ loading, summary, error }: { loading: boolean; summary: string | null; error: string | null }) {
-  return (
-    <div className={`article-summary-popup${loading ? ' loading' : ''}${error ? ' error' : ''}`}>
-      {loading ? 'Summarizing...' : error || summary}
-    </div>
-  )
+  if (error) return <div className="article-summary-popup error">{error}</div>
+  if (summary) return <div className={`article-summary-popup${loading ? ' streaming' : ''}`}>{summary}</div>
+  return <div className="article-summary-popup loading">Summarizing...</div>
 }

@@ -334,6 +334,13 @@
 [data-theme="dark"] .article-summary-popup {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
+.article-summary-popup.streaming::after {
+  content: ' \25CE';
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% { opacity: 0 }
+}
 
 /* Translation blocks */
 .translation-block {
