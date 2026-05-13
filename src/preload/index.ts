@@ -81,6 +81,8 @@ const api = {
   onRefreshDone: (callback: () => void) => onChannel('feeds:refreshDone', callback),
   openExternal: (url: string) => ipcRenderer.invoke('openExternal', url),
   setCurrentArticle: (feedId: number | null, articleId: number | null) => ipcRenderer.invoke('app:setCurrentArticle', feedId, articleId),
+  closeArticleWebview: (webContentsId: number | null, partition: string | null, closeConnections: boolean) =>
+    ipcRenderer.invoke('app:closeArticleWebview', webContentsId, partition, closeConnections),
   isColdStart: () => ipcRenderer.invoke('app:isColdStart'),
   onMenuAddFeed: (callback: () => void) => onChannel('menu:addFeed', callback),
   onMenuImportOpml: (callback: () => void) => onChannel('menu:importOpml', callback),

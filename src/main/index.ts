@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain, nativeImage, nativeTheme, powerMonitor, protocol, net, session, shell } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, nativeImage, nativeTheme, powerMonitor, protocol, net, session, shell, webContents, type Session } from 'electron'
 import { join } from 'path'
 import { initDatabase } from './db'
 import { getSetting, getSettingJson, setSetting } from './ipc/settings'
@@ -17,6 +17,7 @@ import { ensureIconsDir, downloadAndCacheIcon, findCachedFile } from './services
 
 const isDev = !app.isPackaged
 let isColdStart = true
+const configuredSessions = new Set<Session>()
 
 // Track the currently viewed article so the favicon handler can resolve feedId
 // without relying on article URL matching (which fails after redirects).
@@ -25,6 +26,27 @@ let currentArticle: { feedId: number; articleId: number } | null = null
 app.setName('Feedwell')
 
 const iconPath = join(__dirname, '../../resources/icon.png')
+
+function configureNetworkSession(ses: Session) {
+  if (configuredSessions.has(ses)) return
+  configuredSessions.add(ses)
+
+  ses.setProxy({ mode: 'system' })
+  ses.webRequest.onBeforeSendHeaders((details, callback) => {
+    if (details.resourceType === 'image') {
+      const headers = { ...details.requestHeaders }
+      const ref = headers['Referer']
+      if (ref && (ref.startsWith('file://') || new URL(ref).hostname === 'localhost')) {
+        delete headers['Referer']
+      }
+      callback({ requestHeaders: headers })
+    } else {
+      callback({ requestHeaders: details.requestHeaders })
+    }
+  })
+}
+
+app.on('session-created', configureNetworkSession)
 
 app.on('web-contents-created', (_event, contents) => {
   if (contents.getType() === 'webview') {
@@ -60,22 +82,29 @@ app.whenReady().then(() => {
     const filePath = join(app.getPath('userData'), 'icons', filename)
     return net.fetch(`file://${filePath}`)
   })
-  session.defaultSession.setProxy({ mode: 'system' })
-  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    if (details.resourceType === 'image') {
-      const headers = { ...details.requestHeaders }
-      const ref = headers['Referer']
-      if (ref && (ref.startsWith('file://') || new URL(ref).hostname === 'localhost')) {
-        delete headers['Referer']
-      }
-      callback({ requestHeaders: headers })
-    } else {
-      callback({ requestHeaders: details.requestHeaders })
-    }
-  })
+  configureNetworkSession(session.defaultSession)
   ipcMain.handle('openExternal', (_event, url: string) => { shell.openExternal(url) })
   ipcMain.handle('app:setCurrentArticle', (_event, feedId: number | null, articleId: number | null) => {
     currentArticle = feedId != null && articleId != null ? { feedId, articleId } : null
+  })
+  ipcMain.handle('app:closeArticleWebview', async (_event, webContentsId: number | null, partition: string | null, closeConnections: boolean) => {
+    let webviewSession: Session | null = null
+    if (typeof webContentsId === 'number') {
+      const contents = webContents.fromId(webContentsId)
+      if (contents && !contents.isDestroyed() && contents.getType() === 'webview') {
+        webviewSession = contents.session
+        contents.stop()
+        try {
+          await contents.loadURL('about:blank')
+        } catch { /* ignore teardown navigation errors */ }
+        if (!contents.isDestroyed()) {
+          contents.close({ waitForBeforeUnload: false })
+        }
+      }
+    }
+    if (closeConnections) {
+      await (webviewSession ?? (partition ? session.fromPartition(partition) : null))?.closeAllConnections()
+    }
   })
   ensureIconsDir()
   initDatabase()
@@ -108,6 +137,14 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   isColdStart = false
+
+  // Close all active connections (including all webview partitions) when window is closed
+  for (const ses of configuredSessions) {
+    try {
+      ses.closeAllConnections().catch(() => {})
+    } catch { /* ignore */ }
+  }
+
   if (process.platform !== 'darwin') {
     stopScheduler()
     app.quit()

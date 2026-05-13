@@ -10,22 +10,15 @@ interface Props {
 }
 
 export default function WebviewMaxWidthDialog({ open, feedId, currentMaxWidth, onSet, onClose }: Props) {
-  const [customValue, setCustomValue] = useState(
-    currentMaxWidth !== null ? String(currentMaxWidth) : ''
-  )
 
   const handleSelect = (width: number | null) => {
     onSet(feedId, width)
-    onClose()
   }
 
   const handleCustomChange = (value: string) => {
-    setCustomValue(value)
-  }
-
-  const applyCustom = () => {
-    const num = Number(customValue)
-    if (customValue && num >= 400) onSet(feedId, num)
+    console.log(value)
+    const num = Number(value)
+    if (num) onSet(feedId, num)
   }
 
   return (
@@ -52,10 +45,8 @@ export default function WebviewMaxWidthDialog({ open, feedId, currentMaxWidth, o
           <input
             type="number"
             placeholder="Custom"
-            value={customValue}
-            onChange={e => handleCustomChange(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') applyCustom() }}
-            onBlur={applyCustom}
+            value={currentMaxWidth?.toString()}
+            onInput={e => handleCustomChange(e.currentTarget.value)}
             onClick={e => e.stopPropagation()}
             className="webview-custom-input"
             min={400}

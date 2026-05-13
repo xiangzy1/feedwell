@@ -117,6 +117,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
         {titlebar}
         <WebviewView
           url={article.url!}
+          feedId={feed!.id}
           webviewMaxWidth={feed!.webview_max_width ?? null}
           articleId={article.id}
           translationEnabled={translationEnabled}
@@ -207,9 +208,29 @@ const initialWebviewState: WebviewState = {
   domReady: false,
 }
 
-function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled, summaryEnabled, articleTitle, onSummaryChange }: { url: string; webviewMaxWidth: number | null; articleId: number; translationEnabled: boolean; summaryEnabled: boolean; articleTitle: string; onSummaryChange: (state: { summary: string | null; loading: boolean; error: string | null }) => void }) {
+function getArticleWebviewPartition(feedId: number) {
+  return `article-webview-feed-${feedId}`
+}
+
+function closeWebviewRequests(el: Electron.WebviewTag) {
+  let webContentsId: number | null = null
+
+  try {
+    webContentsId = el.getWebContentsId()
+  } catch { /* ignore missing guest contents */ }
+
+  try {
+    el.stop?.()
+  } catch { /* ignore teardown errors */ }
+
+  window.api.closeArticleWebview(webContentsId, null, false).catch(() => {})
+}
+
+function WebviewView({ url, feedId, webviewMaxWidth, articleId, translationEnabled, summaryEnabled, articleTitle, onSummaryChange }: { url: string; feedId: number; webviewMaxWidth: number | null; articleId: number; translationEnabled: boolean; summaryEnabled: boolean; articleTitle: string; onSummaryChange: (state: { summary: string | null; loading: boolean; error: string | null }) => void }) {
   const webviewRef = useRef<Electron.WebviewTag | null>(null)
   const initialLoadDone = useRef(false)
+  const webviewPartition = getArticleWebviewPartition(feedId)
+
   const [wv, dispatch] = useReducer(
     (prev: WebviewState, next: Partial<WebviewState>) => ({ ...prev, ...next }),
     initialWebviewState
@@ -223,6 +244,12 @@ function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled, summ
   }, [wvSummary, onSummaryChange])
 
   const refCallback = useCallback((el: Electron.WebviewTag | null) => {
+    // Clear any pending destruction timer if Strict Mode remounts the same element
+    if (el && (el as any)._destroyTimer) {
+      clearTimeout((el as any)._destroyTimer)
+      ;(el as any)._destroyTimer = null
+    }
+
     webviewRef.current = el
     if (!el) return
 
@@ -296,16 +323,41 @@ function WebviewView({ url, webviewMaxWidth, articleId, translationEnabled, summ
       el.removeEventListener('did-fail-load', onFail)
       el.removeEventListener('console-message', onConsoleMsg)
       el.removeEventListener('dom-ready', onDomReady)
+
+      if (webviewRef.current === el) webviewRef.current = null
+
+      // Delay destruction to allow React Strict Mode to cancel it if it remounts the same DOM node
+      const timer = setTimeout(() => {
+        if (!document.contains(el)) {
+          closeWebviewRequests(el)
+        }
+      }, 500)
+      ;(el as any)._destroyTimer = timer
     }
-  }, [webviewMaxWidth])
+  }, [])
 
   useEffect(() => {
     initialLoadDone.current = false
     dispatch({ ...initialWebviewState })
   }, [url])
 
+  useEffect(() => {
+    return () => {
+      window.api.closeArticleWebview(null, webviewPartition, true).catch(() => {})
+    }
+  }, [webviewPartition])
+
   /* eslint-disable react/no-unknown-property */
-  const webviewEl = <webview ref={refCallback} src={url} className="article-webview" allowpopups="" />
+  const webviewEl = (
+    <webview
+      key={`${articleId}:${url}`}
+      ref={refCallback}
+      src={url}
+      partition={webviewPartition}
+      className="article-webview"
+      allowpopups=""
+    />
+  )
   /* eslint-enable react/no-unknown-property */
 
   return (

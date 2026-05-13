@@ -41,6 +41,10 @@ export default function Sidebar({ className, feeds, unreadCount, selectedFeedId,
 
   const handleSetWebviewMaxWidth = async (feedId: number, width: number | null) => {
     await window.api.feeds.update(feedId, { webview_max_width: width })
+    setWebviewMaxWidthFeed(prev => {
+      if (!prev) return null
+      return { ...prev, webview_max_width: width }
+    })
   }
 
   const { groupedFeeds, folderNames } = useMemo(() => {

@@ -67,6 +67,7 @@ declare global {
       onRefreshDone: (callback: () => void) => () => void
       openExternal: (url: string) => Promise<void>
       setCurrentArticle: (feedId: number | null, articleId: number | null) => Promise<void>
+      closeArticleWebview: (webContentsId: number | null, partition: string | null, closeConnections: boolean) => Promise<void>
       isColdStart: () => Promise<boolean>
       onMenuAddFeed: (callback: () => void) => () => void
       onMenuImportOpml: (callback: () => void) => () => void
