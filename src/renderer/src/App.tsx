@@ -27,8 +27,27 @@ const SIDEBAR_COLLAPSED_KEY = 'feedwell-sidebar-collapsed'
 export default function App() {
   const { handleResize: handleSidebarResize } = usePersistedWidth('feedwell-sidebar-width', '--sidebar-width', 220, 120, 500)
   const { handleResize: handleListResize } = usePersistedWidth('feedwell-list-width', '--list-width', 300, 200, 600)
-  const [selectedFeedId, setSelectedFeedId] = useState<number | null>(null)
-  const [selectedFilter, setSelectedFilter] = useState<string | null>('all')
+  const [selectedFeedId, setSelectedFeedId] = useState<number | null>(() => {
+    const stored = localStorage.getItem('feedwell-selected-feed-id')
+    return stored ? Number(stored) : null
+  })
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(() => {
+    const storedFilter = localStorage.getItem('feedwell-selected-filter')
+    const storedFeedId = localStorage.getItem('feedwell-selected-feed-id')
+    if (storedFilter) return storedFilter
+    if (storedFeedId) return null
+    return 'all'
+  })
+
+  useEffect(() => {
+    if (selectedFeedId !== null) {
+      localStorage.setItem('feedwell-selected-feed-id', String(selectedFeedId))
+      localStorage.removeItem('feedwell-selected-filter')
+    } else if (selectedFilter !== null) {
+      localStorage.setItem('feedwell-selected-filter', selectedFilter)
+      localStorage.removeItem('feedwell-selected-feed-id')
+    }
+  }, [selectedFeedId, selectedFilter])
   const [showAddFeed, setShowAddFeed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'general' | 'appearance' | 'reading' | 'translation' | 'api' | undefined>(undefined)

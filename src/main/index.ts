@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Menu, ipcMain, nativeImage, nativeTheme, powerMonitor, protocol, net, session, shell, webContents, type Session } from 'electron'
 import { join } from 'path'
-import { initDatabase } from './db'
+import { getDb, initDatabase } from './db'
 import { getSetting, getSettingJson, setSetting } from './ipc/settings'
 import { startScheduler, stopScheduler, isRunning, onResume } from './services/scheduler'
 import { registerFeedIpc, updateBadgeCount, broadcast } from './ipc/feeds'
@@ -63,7 +63,7 @@ app.on('web-contents-created', (_event, contents) => {
         if (!feedId) return
         const filename = await downloadAndCacheIcon(faviconUrl, feedId)
         if (filename) {
-          const { getDb } = await import('./db')
+          const db = getDb()
           getDb().prepare('UPDATE feeds SET favicon_cached = ?, favicon_url = COALESCE(favicon_url, ?) WHERE id = ?')
             .run(filename, faviconUrl, feedId)
           broadcast('feeds:updated')
