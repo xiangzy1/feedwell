@@ -11,6 +11,8 @@ import { registerOpmlIpc } from './ipc/opml'
 import { registerStatsIpc } from './ipc/stats'
 import { registerTranslationIpc } from './ipc/translation'
 import { registerSummaryIpc } from './ipc/summary'
+import { registerUpdaterIpc } from './ipc/updater'
+import { initUpdater } from './services/updater'
 import { ensureIconsDir, downloadAndCacheIcon, findCachedFile } from './services/favicon'
 
 const isDev = !app.isPackaged
@@ -86,8 +88,10 @@ app.whenReady().then(() => {
   registerStatsIpc()
   registerTranslationIpc()
   registerSummaryIpc()
+  registerUpdaterIpc()
   ipcMain.handle('app:isColdStart', () => isColdStart)
   createMainWindow()
+  initUpdater()
   startScheduler()
 
   powerMonitor.on('resume', onResume)
@@ -122,6 +126,7 @@ function setupMenu(win: BrowserWindow) {
       submenu: [
         { role: 'about' },
         { label: 'Settings...', accelerator: 'CmdOrCtrl+,', click: () => win.webContents.send('menu:settings') },
+        { label: 'Check for Updates...', click: () => win.webContents.send('menu:checkUpdates') },
         { type: 'separator' },
         { role: 'hide' },
         { role: 'hideOthers' },

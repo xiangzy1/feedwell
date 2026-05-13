@@ -57,6 +57,19 @@ const api = {
     onSummaryChunk: (callback: (data: { articleId: number; delta: string }) => void) =>
       onTypedChannel('summary:chunk', callback)
   },
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    download: () => ipcRenderer.invoke('updater:download'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    getAutoCheck: () => ipcRenderer.invoke('updater:getAutoCheck'),
+    setAutoCheck: (enabled: boolean) => ipcRenderer.invoke('updater:setAutoCheck', enabled),
+    onChecking: (callback: () => void) => onChannel('updater:checking', callback),
+    onAvailable: (callback: (data: { version: string; releaseNotes: string | null }) => void) => onTypedChannel('updater:available', callback),
+    onNotAvailable: (callback: () => void) => onChannel('updater:not-available', callback),
+    onProgress: (callback: (data: { percent: number }) => void) => onTypedChannel('updater:progress', callback),
+    onDownloaded: (callback: () => void) => onChannel('updater:downloaded', callback),
+    onError: (callback: (data: { message: string }) => void) => onTypedChannel('updater:error', callback),
+  },
   onFeedsUpdated: (callback: () => void) => onChannel('feeds:updated', callback),
   onArticlesUpdated: (callback: () => void) => onChannel('articles:updated', callback),
   onArticleStateChanged: (callback: (data: { id: number; feedId: number; read: boolean; starred: boolean; readDelta: number }) => void) =>
@@ -72,7 +85,8 @@ const api = {
   onMenuAddFeed: (callback: () => void) => onChannel('menu:addFeed', callback),
   onMenuImportOpml: (callback: () => void) => onChannel('menu:importOpml', callback),
   onMenuExportOpml: (callback: () => void) => onChannel('menu:exportOpml', callback),
-  onMenuSettings: (callback: () => void) => onChannel('menu:settings', callback)
+  onMenuSettings: (callback: () => void) => onChannel('menu:settings', callback),
+  onMenuCheckUpdates: (callback: () => void) => onChannel('menu:checkUpdates', callback)
 }
 
 contextBridge.exposeInMainWorld('api', api)

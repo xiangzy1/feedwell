@@ -46,6 +46,19 @@ declare global {
         summarize: (articleId: number, title: string, content: string) => Promise<string>
         onSummaryChunk: (callback: (data: { articleId: number; delta: string }) => void) => () => void
       }
+      updater: {
+        check: () => Promise<void>
+        download: () => Promise<void>
+        install: () => Promise<void>
+        getAutoCheck: () => Promise<boolean>
+        setAutoCheck: (enabled: boolean) => Promise<void>
+        onChecking: (callback: () => void) => () => void
+        onAvailable: (callback: (data: { version: string; releaseNotes: string | null }) => void) => () => void
+        onNotAvailable: (callback: () => void) => () => void
+        onProgress: (callback: (data: { percent: number }) => void) => () => void
+        onDownloaded: (callback: () => void) => () => void
+        onError: (callback: (data: { message: string }) => void) => () => void
+      }
       onFeedsUpdated: (callback: () => void) => () => void
       onArticlesUpdated: (callback: () => void) => () => void
       onArticleStateChanged: (callback: (data: { id: number; feedId: number; read: boolean; starred: boolean; readDelta: number }) => void) => () => void
@@ -59,6 +72,7 @@ declare global {
       onMenuImportOpml: (callback: () => void) => () => void
       onMenuExportOpml: (callback: () => void) => () => void
       onMenuSettings: (callback: () => void) => () => void
+      onMenuCheckUpdates: (callback: () => void) => () => void
     }
   }
 }

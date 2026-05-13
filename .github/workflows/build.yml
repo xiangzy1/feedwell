@@ -37,7 +37,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         if: github.event_name == 'release'
         with:
-          files: dist/*.dmg
+          files: |
+            dist/*.dmg
+            dist/latest-mac.yml
 
   build-win:
     runs-on: windows-latest
@@ -63,4 +65,6 @@ jobs:
       - uses: softprops/action-gh-release@v2
         if: github.event_name == 'release'
         with:
-          files: dist/*.exe
+          files: |
+            dist/*.exe
+            dist/latest.yml

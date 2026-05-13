@@ -3,6 +3,10 @@ productName: Feedwell
 directories:
   buildResources: resources
   output: dist
+publish:
+  provider: github
+  owner: xiangzy1
+  repo: feedwell
 mac:
   category: public.app-category.news
   target:

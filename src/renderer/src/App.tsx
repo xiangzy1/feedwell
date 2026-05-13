@@ -15,6 +15,7 @@ import { useThemeProvider, ThemeProvider } from './hooks/useTheme'
 import { useReadingSettingsProvider, ReadingSettingsProvider } from './hooks/useReadingSettings'
 import { useTranslationSettingsProvider, TranslationSettingsProvider } from './hooks/useTranslationSettings'
 import { useRefreshSettingsProvider, RefreshSettingsProvider } from './hooks/useRefreshSettings'
+import { useUpdateSettingsProvider, UpdateSettingsProvider } from './hooks/useUpdateSettings'
 import { PanelLeftClose, PanelLeft } from 'lucide-react'
 import './styles/global.css'
 import './styles/dialog.css'
@@ -30,6 +31,7 @@ export default function App() {
   const [selectedFilter, setSelectedFilter] = useState<string | null>('all')
   const [showAddFeed, setShowAddFeed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<'general' | 'appearance' | 'reading' | 'translation' | 'api' | undefined>(undefined)
   const [showStats, setShowStats] = useState(false)
   const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
     const stored = localStorage.getItem(SORT_STORAGE_KEY)
@@ -53,6 +55,7 @@ export default function App() {
   const readingCtx = useReadingSettingsProvider()
   const translationCtx = useTranslationSettingsProvider()
   const refreshCtx = useRefreshSettingsProvider()
+  const updateCtx = useUpdateSettingsProvider()
   const { feeds, reload: reloadFeeds } = useFeeds()
   const { articles, selectedId, setSelectedId, markRead, markStarred, markAllRead } = useArticles({
     feedId: selectedFeedId,
@@ -91,7 +94,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    return window.api.onMenuSettings(() => setShowSettings(true))
+    return window.api.onMenuSettings(() => { setSettingsTab(undefined); setShowSettings(true) })
+  }, [])
+
+  useEffect(() => {
+    return window.api.onMenuCheckUpdates(() => { setSettingsTab('general'); setShowSettings(true) })
   }, [])
 
   useEffect(() => {
@@ -127,6 +134,7 @@ export default function App() {
       <ReadingSettingsProvider value={readingCtx}>
       <TranslationSettingsProvider value={translationCtx}>
       <RefreshSettingsProvider value={refreshCtx}>
+      <UpdateSettingsProvider value={updateCtx}>
       <div className="app">
         <button className="sidebar-toggle" onClick={toggleSidebar}>
           {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
@@ -166,9 +174,10 @@ export default function App() {
           feeds={feeds}
         />
         <AddFeedDialog open={showAddFeed} onAdd={handleAddFeed} onClose={() => setShowAddFeed(false)} />
-        <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
+        <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} initialTab={settingsTab} />
         <StatsDialog open={showStats} onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />
       </div>
+      </UpdateSettingsProvider>
       </RefreshSettingsProvider>
       </TranslationSettingsProvider>
       </ReadingSettingsProvider>

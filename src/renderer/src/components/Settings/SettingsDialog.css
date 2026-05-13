@@ -111,3 +111,33 @@
   border-top: 1px solid var(--border-color);
   margin: 6px 0;
 }
+
+/* ===== Update Progress ===== */
+
+.update-progress-container {
+  width: 200px;
+  height: 24px;
+  background: var(--bg-hover);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.update-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.update-progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Dialog from '../Dialog'
 import { useTheme, type Theme } from '../../hooks/useTheme'
 import { useReadingSettings, type ReadingSettings } from '../../hooks/useReadingSettings'
 import { useTranslationSettings, type TranslationSettings } from '../../hooks/useTranslationSettings'
 import { useRefreshSettings, type RefreshInterval } from '../../hooks/useRefreshSettings'
+import { useUpdateSettings } from '../../hooks/useUpdateSettings'
 import './SettingsDialog.css'
 
 const themeOptions: { value: Theme; label: string }[] = [
@@ -49,9 +50,10 @@ const refreshIntervalOptions: { value: RefreshInterval; label: string }[] = [
   { value: 480, label: 'Every 8 hours' },
 ]
 
-type Tab = 'appearance' | 'reading' | 'translation' | 'api'
+type Tab = 'general' | 'appearance' | 'reading' | 'translation' | 'api'
 
 const tabs: { id: Tab; label: string }[] = [
+  { id: 'general', label: 'General' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'reading', label: 'Reading' },
   { id: 'translation', label: 'Translation' },
@@ -61,16 +63,57 @@ const tabs: { id: Tab; label: string }[] = [
 interface Props {
   open: boolean
   onClose: () => void
+  initialTab?: Tab
 }
 
-export default function SettingsDialog({ open, onClose }: Props) {
+export default function SettingsDialog({ open, onClose, initialTab }: Props) {
   const { theme, setTheme } = useTheme()
   const { settings, updateSettings, limits } = useReadingSettings()
   const { settings: tSettings, updateSettings: updateTSettings } = useTranslationSettings()
   const { settings: rSettings, updateSettings: updateRSettings } = useRefreshSettings()
+  const { settings: uSettings, updateSettings: updateUSettings } = useUpdateSettings()
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
-  const [activeTab, setActiveTab] = useState<Tab>('appearance')
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'general')
+
+  useEffect(() => {
+    if (open && initialTab) setActiveTab(initialTab)
+  }, [open, initialTab])
+
+  // Update state machine
+  const [updateState, setUpdateState] = useState<'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'>('idle')
+  const [updateVersion, setUpdateVersion] = useState('')
+  const [updateProgress, setUpdateProgress] = useState(0)
+  const [updateError, setUpdateError] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+    const unsubs = [
+      window.api.updater.onChecking(() => setUpdateState('checking')),
+      window.api.updater.onAvailable((data) => { setUpdateVersion(data.version); setUpdateState('available') }),
+      window.api.updater.onNotAvailable(() => setUpdateState('not-available')),
+      window.api.updater.onProgress((data) => { setUpdateProgress(data.percent); setUpdateState('downloading') }),
+      window.api.updater.onDownloaded(() => setUpdateState('downloaded')),
+      window.api.updater.onError((data) => { setUpdateError(data.message); setUpdateState('error') }),
+    ]
+    return () => unsubs.forEach(fn => fn())
+  }, [open])
+
+  const handleCheckUpdate = useCallback(() => {
+    setUpdateState('checking')
+    setUpdateError('')
+    window.api.updater.check().catch(() => {})
+  }, [])
+
+  const handleDownloadUpdate = useCallback(() => {
+    setUpdateState('downloading')
+    setUpdateProgress(0)
+    window.api.updater.download().catch(() => {})
+  }, [])
+
+  const handleInstallUpdate = useCallback(() => {
+    window.api.updater.install()
+  }, [])
 
   const handleTest = async () => {
     setTestStatus('testing')
@@ -100,6 +143,55 @@ export default function SettingsDialog({ open, onClose }: Props) {
         </nav>
 
         <div className="settings-content">
+          {activeTab === 'general' && (
+            <div className="settings-panel" key="general">
+              <div className="dialog-column">
+                <label className="dialog-radio">
+                  <input
+                    type="checkbox"
+                    checked={uSettings.autoCheck}
+                    onChange={e => updateUSettings({ autoCheck: e.target.checked })}
+                  />
+                  Automatically check for updates
+                </label>
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {updateState === 'idle' && (
+                      <button className="dialog-test-btn" onClick={handleCheckUpdate}>Check for Updates</button>
+                    )}
+                    {updateState === 'checking' && (
+                      <button className="dialog-test-btn" disabled>Checking...</button>
+                    )}
+                    {updateState === 'available' && (
+                      <button className="dialog-test-btn" onClick={handleDownloadUpdate}>Download v{updateVersion}</button>
+                    )}
+                    {updateState === 'downloading' && (
+                      <div className="update-progress-container">
+                        <div className="update-progress-bar" style={{ width: `${updateProgress}%` }} />
+                        <span className="update-progress-text">{updateProgress}%</span>
+                      </div>
+                    )}
+                    {updateState === 'downloaded' && (
+                      <button className="dialog-test-btn" onClick={handleInstallUpdate}>Restart to Update</button>
+                    )}
+                    {updateState === 'not-available' && (
+                      <>
+                        <button className="dialog-test-btn" onClick={handleCheckUpdate}>Check for Updates</button>
+                        <span className="dialog-feedback success">You&apos;re up to date!</span>
+                      </>
+                    )}
+                    {updateState === 'error' && (
+                      <>
+                        <button className="dialog-test-btn" onClick={handleCheckUpdate}>Check for Updates</button>
+                        <span className="dialog-feedback error">{updateError}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'appearance' && (
             <div className="settings-panel" key="appearance">
               <div className="dialog-option-group">
