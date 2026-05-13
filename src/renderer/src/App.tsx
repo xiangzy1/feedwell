@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import Sidebar from './components/Sidebar/Sidebar'
 import ArticleList from './components/ArticleList/ArticleList'
 import ArticleView from './components/ArticleView/ArticleView'
@@ -6,7 +6,7 @@ import AddFeedDialog from './components/Sidebar/AddFeedDialog'
 import SettingsDialog from './components/Settings/SettingsDialog'
 import StatsDialog from './components/Stats/StatsDialog'
 import ResizeHandle from './components/ResizeHandle'
-import { useArticles, Article } from './hooks/useArticles'
+import { useArticles } from './hooks/useArticles'
 import { useFeeds } from './hooks/useFeeds'
 import { usePersistedWidth } from './hooks/usePersistedWidth'
 import { useShortcuts } from './hooks/useShortcuts'
@@ -58,7 +58,8 @@ export default function App() {
     feedId: selectedFeedId,
     filter: selectedFilter
   })
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+  const selectedArticle = useMemo(() => articles.find(a => a.id === selectedId) ?? null, [articles, selectedId])
+  const unreadCount = useMemo(() => feeds.reduce((sum, f) => sum + f.unread_count, 0), [feeds])
 
   const activeFeedId = selectedArticle?.feed_id ?? selectedFeedId
 
@@ -79,7 +80,6 @@ export default function App() {
     selectedId,
     onSelectArticle: (article) => {
       setSelectedId(article.id)
-      if (article) setSelectedArticle(article)
     },
     onMarkRead: markRead,
     onToggleStar: markStarred,
@@ -133,6 +133,8 @@ export default function App() {
         </button>
         <Sidebar
           className={sidebarCollapsed ? 'collapsed' : undefined}
+          feeds={feeds}
+          unreadCount={unreadCount}
           selectedFeedId={selectedFeedId}
           selectedFilter={selectedFilter}
           activeFeedId={activeFeedId}
@@ -150,7 +152,6 @@ export default function App() {
           onSelect={(article) => {
             setSelectedId(article.id)
             markRead(article.id)
-            if (article) setSelectedArticle(article)
           }}
           onMarkAllRead={() => markAllRead(selectedFeedId || undefined)}
           filter={selectedFilter}

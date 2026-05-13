@@ -48,6 +48,8 @@ declare global {
       }
       onFeedsUpdated: (callback: () => void) => () => void
       onArticlesUpdated: (callback: () => void) => () => void
+      onArticleStateChanged: (callback: (data: { id: number; feedId: number; read: boolean; starred: boolean; readDelta: number }) => void) => () => void
+      onAllRead: (callback: (data: { feedId?: number; feeds?: { id: number; unread_count: number }[] }) => void) => () => void
       onRefreshProgress: (callback: (progress: { current: number; total: number }) => void) => () => void
       onRefreshDone: (callback: () => void) => () => void
       openExternal: (url: string) => Promise<void>

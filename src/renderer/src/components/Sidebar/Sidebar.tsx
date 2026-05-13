@@ -1,25 +1,15 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Plus, RefreshCw, BarChart3, Settings, ChevronDown } from 'lucide-react'
 import SidebarItem from './SidebarItem'
 import MoveToFolderDialog from './MoveToFolderDialog'
 import WebviewMaxWidthDialog from './WebviewMaxWidthDialog'
 import '../../styles/sidebar.css'
-
-interface Feed {
-  id: number
-  title: string
-  url: string
-  folder_id: number | null
-  folder_name: string | null
-  unread_count: number
-  open_in_browser: boolean
-  favicon_url: string | null
-  favicon_cached: string | null
-  webview_max_width: number | null
-}
+import { Feed } from '../../hooks/useFeeds'
 
 interface Props {
   className?: string
+  feeds: Feed[]
+  unreadCount: number
   selectedFeedId: number | null
   selectedFilter: string | null
   activeFeedId: number | null
@@ -31,44 +21,26 @@ interface Props {
   onShowStats: () => void
 }
 
-export default function Sidebar({ className, selectedFeedId, selectedFilter, activeFeedId, refreshProgress, onSelectFeed, onSelectFilter, onShowAddFeed, onShowSettings, onShowStats }: Props) {
-  const [feeds, setFeeds] = useState<Feed[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
+export default function Sidebar({ className, feeds, unreadCount, selectedFeedId, selectedFilter, activeFeedId, refreshProgress, onSelectFeed, onSelectFilter, onShowAddFeed, onShowSettings, onShowStats }: Props) {
   const [collapsedFolders, setCollapsedFolders] = useState<Set<number>>(new Set())
   const [moveToFolderFeed, setMoveToFolderFeed] = useState<Feed | null>(null)
   const [webviewMaxWidthFeed, setWebviewMaxWidthFeed] = useState<Feed | null>(null)
 
-  const loadFeeds = useCallback(async () => {
-    const feeds = await window.api.feeds.list()
-    setFeeds(feeds)
-    const total = feeds.reduce((sum: number, f: Feed) => sum + f.unread_count, 0)
-    setUnreadCount(total)
-  }, [])
-
-  useEffect(() => {
-    loadFeeds()
-    return window.api.onFeedsUpdated(loadFeeds)
-  }, [loadFeeds])
-
   const handleDelete = async (feedId: number) => {
     await window.api.feeds.remove(feedId)
-    loadFeeds()
   }
 
   const handleToggleBrowser = async (feedId: number, currentValue: boolean) => {
     const newVal = currentValue ? 0 : 1
     await window.api.feeds.update(feedId, { open_in_browser: newVal })
-    loadFeeds()
   }
 
   const handleMoveToFolder = async (feedId: number, folderId: number | null) => {
     await window.api.feeds.update(feedId, { folder_id: folderId })
-    loadFeeds()
   }
 
   const handleSetWebviewMaxWidth = async (feedId: number, width: number | null) => {
     await window.api.feeds.update(feedId, { webview_max_width: width })
-    await loadFeeds()
   }
 
   const { groupedFeeds, folderNames } = useMemo(() => {

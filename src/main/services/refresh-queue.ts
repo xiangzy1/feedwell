@@ -1,6 +1,5 @@
-import { BrowserWindow } from 'electron'
 import { fetchFeed } from './feed-fetcher'
-import { notifyFeedsUpdated, notifyArticlesUpdated, notifyRefreshDone } from '../ipc/feeds'
+import { notifyFeedsUpdated, notifyArticlesUpdated, notifyRefreshDone, broadcast } from '../ipc/feeds'
 
 const MAX_CONCURRENCY = 6
 
@@ -37,11 +36,7 @@ export function enqueue(
 }
 
 function broadcastProgress(current: number, total: number) {
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('feeds:refreshProgress', { current, total })
-    }
-  }
+  broadcast('feeds:refreshProgress', { current, total })
 }
 
 function drain() {

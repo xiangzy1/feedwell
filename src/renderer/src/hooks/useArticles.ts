@@ -45,15 +45,18 @@ export function useArticles({ feedId, filter }: Props) {
     return window.api.onArticlesUpdated(loadArticles)
   }, [loadArticles])
 
+  useEffect(() => {
+    return window.api.onArticleStateChanged(({ id, read, starred }) => {
+      setArticles(prev => prev.map(a => a.id === id ? { ...a, read, starred } : a))
+    })
+  }, [])
+
   const markRead = useCallback(async (id: number, read?: boolean) => {
-    const newRead = read !== undefined ? read : true
-    await window.api.articles.markRead(id, newRead)
-    setArticles(prev => prev.map(a => a.id === id ? { ...a, read: newRead } : a))
+    await window.api.articles.markRead(id, read !== undefined ? read : true)
   }, [])
 
   const markStarred = useCallback(async (id: number, starred: boolean) => {
     await window.api.articles.markStarred(id, starred)
-    setArticles(prev => prev.map(a => a.id === id ? { ...a, starred } : a))
   }, [])
 
   const markAllRead = useCallback(async (feedId?: number) => {

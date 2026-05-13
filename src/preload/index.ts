@@ -6,6 +6,12 @@ function onChannel(channel: string, callback: () => void) {
   return () => ipcRenderer.removeListener(channel, handler)
 }
 
+function onTypedChannel<T>(channel: string, callback: (data: T) => void) {
+  const handler = (_e: any, data: T) => callback(data)
+  ipcRenderer.on(channel, handler)
+  return () => ipcRenderer.removeListener(channel, handler)
+}
+
 const api = {
   feeds: {
     add: (url: string, folderId?: number) => ipcRenderer.invoke('feeds:add', url, folderId),
@@ -48,19 +54,17 @@ const api = {
   },
   summary: {
     summarize: (articleId: number, title: string, content: string) => ipcRenderer.invoke('summary:summarize', { articleId, title, content }),
-    onSummaryChunk: (callback: (data: { articleId: number; delta: string }) => void) => {
-      const handler = (_e: any, data: { articleId: number; delta: string }) => callback(data)
-      ipcRenderer.on('summary:chunk', handler)
-      return () => ipcRenderer.removeListener('summary:chunk', handler)
-    }
+    onSummaryChunk: (callback: (data: { articleId: number; delta: string }) => void) =>
+      onTypedChannel('summary:chunk', callback)
   },
   onFeedsUpdated: (callback: () => void) => onChannel('feeds:updated', callback),
   onArticlesUpdated: (callback: () => void) => onChannel('articles:updated', callback),
-  onRefreshProgress: (callback: (progress: { current: number; total: number }) => void) => {
-    const handler = (_e: any, progress: { current: number; total: number }) => callback(progress)
-    ipcRenderer.on('feeds:refreshProgress', handler)
-    return () => ipcRenderer.removeListener('feeds:refreshProgress', handler)
-  },
+  onArticleStateChanged: (callback: (data: { id: number; feedId: number; read: boolean; starred: boolean; readDelta: number }) => void) =>
+    onTypedChannel('articles:stateChanged', callback),
+  onAllRead: (callback: (data: { feedId?: number; feeds?: { id: number; unread_count: number }[] }) => void) =>
+    onTypedChannel('feeds:unreadReset', callback),
+  onRefreshProgress: (callback: (progress: { current: number; total: number }) => void) =>
+    onTypedChannel('feeds:refreshProgress', callback),
   onRefreshDone: (callback: () => void) => onChannel('feeds:refreshDone', callback),
   openExternal: (url: string) => ipcRenderer.invoke('openExternal', url),
   setCurrentArticle: (feedId: number | null, articleId: number | null) => ipcRenderer.invoke('app:setCurrentArticle', feedId, articleId),

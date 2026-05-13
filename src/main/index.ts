@@ -3,7 +3,7 @@ import { join } from 'path'
 import { initDatabase } from './db'
 import { getSetting, getSettingJson, setSetting } from './ipc/settings'
 import { startScheduler, stopScheduler, isRunning, onResume } from './services/scheduler'
-import { registerFeedIpc, updateBadgeCount } from './ipc/feeds'
+import { registerFeedIpc, updateBadgeCount, broadcast } from './ipc/feeds'
 import { registerArticleIpc } from './ipc/articles'
 import { registerFolderIpc } from './ipc/folders'
 import { registerSettingsIpc } from './ipc/settings'
@@ -42,11 +42,7 @@ app.on('web-contents-created', (_event, contents) => {
           const { getDb } = await import('./db')
           getDb().prepare('UPDATE feeds SET favicon_cached = ?, favicon_url = COALESCE(favicon_url, ?) WHERE id = ?')
             .run(filename, faviconUrl, feedId)
-          for (const win of BrowserWindow.getAllWindows()) {
-            if (!win.isDestroyed()) {
-              win.webContents.send('feeds:updated')
-            }
-          }
+          broadcast('feeds:updated')
         }
       } catch { /* ignore */ }
     })

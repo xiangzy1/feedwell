@@ -103,6 +103,12 @@ export function registerFeedIpc(): void {
   })
 }
 
+export function broadcast(channel: string, data?: unknown) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send(channel, data)
+  }
+}
+
 export function updateBadgeCount() {
   if (process.platform !== 'darwin') return
   const { count } = getDb().prepare('SELECT COUNT(*) as count FROM articles WHERE read = 0').get() as { count: number }
@@ -110,20 +116,31 @@ export function updateBadgeCount() {
 }
 
 export function notifyFeedsUpdated() {
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) win.webContents.send('feeds:updated')
-  }
+  broadcast('feeds:updated')
   updateBadgeCount()
 }
 
 export function notifyArticlesUpdated() {
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) win.webContents.send('articles:updated')
+  broadcast('articles:updated')
+}
+
+export function notifyArticleStateChanged(data: {
+  id: number; feedId: number; read: boolean; starred: boolean; readDelta: number
+}) {
+  broadcast('articles:stateChanged', data)
+  updateBadgeCount()
+}
+
+export function notifyAllRead(feedId?: number) {
+  if (feedId) {
+    broadcast('feeds:unreadReset', { feedId })
+  } else {
+    const feeds = getDb().prepare('SELECT id, (SELECT COUNT(*) FROM articles WHERE feed_id = feeds.id AND read = 0) as unread_count FROM feeds').all() as { id: number; unread_count: number }[]
+    broadcast('feeds:unreadReset', { feeds })
   }
+  updateBadgeCount()
 }
 
 export function notifyRefreshDone() {
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) win.webContents.send('feeds:refreshDone')
-  }
+  broadcast('feeds:refreshDone')
 }

@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
-import { notifyFeedsUpdated } from './feeds'
+import { notifyArticleStateChanged, notifyAllRead } from './feeds'
 
 export function registerArticleIpc(): void {
   ipcMain.handle('articles:list', (_event, feedId?: number, options?: { unreadOnly?: boolean; starredOnly?: boolean; limit?: number; offset?: number }) => {
@@ -34,12 +34,22 @@ export function registerArticleIpc(): void {
   })
 
   ipcMain.handle('articles:markRead', (_event, id: number, read?: boolean) => {
-    getDb().prepare('UPDATE articles SET read = ? WHERE id = ?').run(read !== undefined ? (read ? 1 : 0) : 1, id)
-    notifyFeedsUpdated()
+    const newRead = read !== undefined ? (read ? 1 : 0) : 1
+    const row = getDb().prepare('SELECT read, starred, feed_id FROM articles WHERE id = ?').get(id) as { read: number; starred: number; feed_id: number } | undefined
+    const oldRead = row?.read ?? 0
+    const feedId = row?.feed_id ?? 0
+    const starred = (row?.starred ?? 0) === 1
+    getDb().prepare('UPDATE articles SET read = ? WHERE id = ?').run(newRead, id)
+    const readDelta = oldRead - newRead
+    notifyArticleStateChanged({ id, feedId, read: newRead === 1, starred, readDelta })
   })
 
   ipcMain.handle('articles:markStarred', (_event, id: number, starred: boolean) => {
+    const row = getDb().prepare('SELECT feed_id, read FROM articles WHERE id = ?').get(id) as { feed_id: number; read: number } | undefined
+    const feedId = row?.feed_id ?? 0
+    const read = (row?.read ?? 0) === 1
     getDb().prepare('UPDATE articles SET starred = ? WHERE id = ?').run(starred ? 1 : 0, id)
+    notifyArticleStateChanged({ id, feedId, read, starred, readDelta: 0 })
   })
 
   ipcMain.handle('articles:markAllRead', (_event, feedId?: number) => {
@@ -48,6 +58,6 @@ export function registerArticleIpc(): void {
     } else {
       getDb().prepare('UPDATE articles SET read = 1 WHERE read = 0').run()
     }
-    notifyFeedsUpdated()
+    notifyAllRead(feedId)
   })
 }
