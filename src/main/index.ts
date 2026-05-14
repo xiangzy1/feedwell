@@ -12,12 +12,14 @@ import { registerStatsIpc } from './ipc/stats'
 import { registerTranslationIpc } from './ipc/translation'
 import { registerSummaryIpc } from './ipc/summary'
 import { registerUpdaterIpc } from './ipc/updater'
+import { registerCacheIpc } from './ipc/cache'
+import { performAutoCleanup, MB } from './services/cache'
 import { initUpdater } from './services/updater'
 import { ensureIconsDir, downloadAndCacheIcon, findCachedFile } from './services/favicon'
 
 const isDev = !app.isPackaged
 let isColdStart = true
-const configuredSessions = new Set<Session>()
+export const configuredSessions = new Set<Session>()
 
 // Track the currently viewed article so the favicon handler can resolve feedId
 // without relying on article URL matching (which fails after redirects).
@@ -118,10 +120,17 @@ app.whenReady().then(() => {
   registerTranslationIpc()
   registerSummaryIpc()
   registerUpdaterIpc()
+  registerCacheIpc()
   ipcMain.handle('app:isColdStart', () => isColdStart)
   createMainWindow()
   initUpdater()
   startScheduler()
+
+  // Auto-cleanup on startup if max cache is configured
+  const cacheSettings = getSettingJson<{ maxSizeMB: number }>('feedwell-cache-settings')
+  if (cacheSettings?.maxSizeMB) {
+    performAutoCleanup(configuredSessions, cacheSettings.maxSizeMB * MB).catch(() => {})
+  }
 
   powerMonitor.on('resume', onResume)
 

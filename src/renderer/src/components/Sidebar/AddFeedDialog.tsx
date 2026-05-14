@@ -58,7 +58,7 @@ export default function AddFeedDialog({ open, onAdd, onClose }: Props) {
 
   return (
     <Dialog open={open} onClose={onClose} title="Add Feed">
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} style={{padding: '0px 20px 12px'}}>
         <input
           type="url"
           placeholder="Enter website or feed URL"

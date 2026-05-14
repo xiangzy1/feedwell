@@ -15,7 +15,13 @@ export default function ArticleRow({ article, selected, onClick }: Props) {
   return (
     <div
       className={`article-row ${selected ? 'selected' : ''} ${article.read ? 'read' : 'unread'}`}
-      onClick={onClick}
+      onClick={(e) => {
+        if (e.detail === 2) {
+          if (article.url) window.api.openExternal(article.url)
+          return
+        }
+        onClick()
+      }}
     >
       <span className={`unread-dot${article.read ? ' read' : ''}`} />
       <FeedIcon url={article.favicon_url} cachedName={article.favicon_cached} feedId={article.feed_id} title={article.feed_title} />

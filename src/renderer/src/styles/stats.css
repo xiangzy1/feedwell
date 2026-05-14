@@ -1,6 +1,7 @@
 .stats-dialog {
   height: 80vh;
   overflow: hidden;
+  padding: 12px 0;
 }
 
 /* Overview Cards */
@@ -22,6 +23,7 @@
 /* Section */
 .stats-section {
   margin-bottom: 20px;
+  padding: 0 16px;
 }
 .stats-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .stats-section-header h4 { margin: 0; font-size: 13px; color: var(--text-secondary); }

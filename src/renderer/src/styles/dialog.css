@@ -23,7 +23,6 @@
 .dialog {
   background: var(--bg-surface);
   border-radius: 10px;
-  padding: 20px;
   width: 380px;
   box-shadow: 0 8px 32px var(--shadow-color);
 
@@ -55,7 +54,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  padding: 12px 20px;
 }
 
 .dialog-header h3 {

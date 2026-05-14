@@ -3,6 +3,7 @@
 .settings-layout {
   display: flex;
   height: 340px;
+  border-top: 1px solid var(--border-color);
 }
 
 .settings-nav {
@@ -140,4 +141,42 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
+}
+
+/* ===== Cache Storage ===== */
+
+.settings-cache-bar-container {
+  margin-top: 8px;
+}
+
+.settings-cache-total {
+  margin-top: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.settings-cache-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.settings-cache-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.settings-cache-label {
+  color: var(--text-primary);
+}
+
+.settings-cache-size {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  min-width: 70px;
+  text-align: right;
 }

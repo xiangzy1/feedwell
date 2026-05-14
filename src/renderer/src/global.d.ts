@@ -1,6 +1,12 @@
 export {}
 
 declare global {
+  interface CacheSizes {
+    webviewCache: number
+    databaseSize: number
+    faviconSize: number
+    total: number
+  }
   interface Window {
     api: {
       feeds: {
@@ -16,7 +22,7 @@ declare global {
         list: (feedId?: number, options?: Record<string, unknown>) => Promise<{ articles: any[] }>
         markRead: (id: number, read?: boolean) => Promise<void>
         markStarred: (id: number, starred: boolean) => Promise<void>
-        markAllRead: (feedId?: number) => Promise<void>
+        markAllRead: (feedId?: number, folderId?: number) => Promise<void>
       }
       folders: {
         list: () => Promise<{ id: number; name: string; sort_order: number }[]>
@@ -66,6 +72,11 @@ declare global {
       onRefreshProgress: (callback: (progress: { current: number; total: number }) => void) => () => void
       onRefreshDone: (callback: () => void) => () => void
       openExternal: (url: string) => Promise<void>
+      cache: {
+        getSizes: () => Promise<CacheSizes>
+        clearAll: () => Promise<CacheSizes>
+        cleanup: () => Promise<void>
+      }
       setCurrentArticle: (feedId: number | null, articleId: number | null) => Promise<void>
       closeArticleWebview: (webContentsId: number | null, partition: string | null, closeConnections: boolean) => Promise<void>
       isColdStart: () => Promise<boolean>

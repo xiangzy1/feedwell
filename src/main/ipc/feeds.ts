@@ -131,9 +131,12 @@ export function notifyArticleStateChanged(data: {
   updateBadgeCount()
 }
 
-export function notifyAllRead(feedId?: number) {
+export function notifyAllRead(feedId?: number, folderId?: number) {
   if (feedId) {
     broadcast('feeds:unreadReset', { feedId })
+  } else if (folderId) {
+    const feeds = getDb().prepare('SELECT id, (SELECT COUNT(*) FROM articles WHERE feed_id = feeds.id AND read = 0) as unread_count FROM feeds WHERE folder_id = ?').all(folderId) as { id: number; unread_count: number }[]
+    broadcast('feeds:unreadReset', { feeds })
   } else {
     const feeds = getDb().prepare('SELECT id, (SELECT COUNT(*) FROM articles WHERE feed_id = feeds.id AND read = 0) as unread_count FROM feeds').all() as { id: number; unread_count: number }[]
     broadcast('feeds:unreadReset', { feeds })

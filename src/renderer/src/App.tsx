@@ -16,6 +16,7 @@ import { useReadingSettingsProvider, ReadingSettingsProvider } from './hooks/use
 import { useTranslationSettingsProvider, TranslationSettingsProvider } from './hooks/useTranslationSettings'
 import { useRefreshSettingsProvider, RefreshSettingsProvider } from './hooks/useRefreshSettings'
 import { useUpdateSettingsProvider, UpdateSettingsProvider } from './hooks/useUpdateSettings'
+import { useCacheSettingsProvider, CacheSettingsProvider } from './hooks/useCacheSettings'
 import { PanelLeftClose, PanelLeft } from 'lucide-react'
 import './styles/global.css'
 import './styles/dialog.css'
@@ -34,23 +35,34 @@ export default function App() {
   const [selectedFilter, setSelectedFilter] = useState<string | null>(() => {
     const storedFilter = localStorage.getItem('feedwell-selected-filter')
     const storedFeedId = localStorage.getItem('feedwell-selected-feed-id')
+    const storedFolderId = localStorage.getItem('feedwell-selected-folder-id')
     if (storedFilter) return storedFilter
-    if (storedFeedId) return null
+    if (storedFeedId || storedFolderId) return null
     return 'all'
+  })
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(() => {
+    const stored = localStorage.getItem('feedwell-selected-folder-id')
+    return stored ? Number(stored) : null
   })
 
   useEffect(() => {
     if (selectedFeedId !== null) {
       localStorage.setItem('feedwell-selected-feed-id', String(selectedFeedId))
       localStorage.removeItem('feedwell-selected-filter')
+      localStorage.removeItem('feedwell-selected-folder-id')
+    } else if (selectedFolderId !== null) {
+      localStorage.setItem('feedwell-selected-folder-id', String(selectedFolderId))
+      localStorage.removeItem('feedwell-selected-filter')
+      localStorage.removeItem('feedwell-selected-feed-id')
     } else if (selectedFilter !== null) {
       localStorage.setItem('feedwell-selected-filter', selectedFilter)
       localStorage.removeItem('feedwell-selected-feed-id')
+      localStorage.removeItem('feedwell-selected-folder-id')
     }
-  }, [selectedFeedId, selectedFilter])
+  }, [selectedFeedId, selectedFilter, selectedFolderId])
   const [showAddFeed, setShowAddFeed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<'general' | 'appearance' | 'reading' | 'translation' | 'api' | undefined>(undefined)
+  const [settingsTab, setSettingsTab] = useState<'general' | 'appearance' | 'reading' | 'translation' | 'api' | 'storage' | undefined>(undefined)
   const [showStats, setShowStats] = useState(false)
   const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
     const stored = localStorage.getItem(SORT_STORAGE_KEY)
@@ -75,10 +87,12 @@ export default function App() {
   const translationCtx = useTranslationSettingsProvider()
   const refreshCtx = useRefreshSettingsProvider()
   const updateCtx = useUpdateSettingsProvider()
+  const cacheCtx = useCacheSettingsProvider()
   const { feeds, reload: reloadFeeds } = useFeeds()
   const { articles, selectedId, setSelectedId, markRead, markStarred, markAllRead } = useArticles({
     feedId: selectedFeedId,
-    filter: selectedFilter
+    filter: selectedFilter,
+    folderId: selectedFolderId
   })
   const selectedArticle = useMemo(() => articles.find(a => a.id === selectedId) ?? null, [articles, selectedId])
   const unreadCount = useMemo(() => feeds.reduce((sum, f) => sum + f.unread_count, 0), [feeds])
@@ -154,6 +168,7 @@ export default function App() {
       <TranslationSettingsProvider value={translationCtx}>
       <RefreshSettingsProvider value={refreshCtx}>
       <UpdateSettingsProvider value={updateCtx}>
+      <CacheSettingsProvider value={cacheCtx}>
       <div className="app">
         <button className="sidebar-toggle" onClick={toggleSidebar}>
           {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
@@ -164,10 +179,12 @@ export default function App() {
           unreadCount={unreadCount}
           selectedFeedId={selectedFeedId}
           selectedFilter={selectedFilter}
+          selectedFolderId={selectedFolderId}
           activeFeedId={activeFeedId}
           refreshProgress={refreshProgress}
-          onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null); setSelectedId(null) }}
-          onSelectFilter={(filter) => { setSelectedFilter(filter); setSelectedFeedId(null); setSelectedId(null) }}
+          onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null); setSelectedFolderId(null); setSelectedId(null) }}
+          onSelectFilter={(filter) => { setSelectedFilter(filter); setSelectedFeedId(null); setSelectedFolderId(null); setSelectedId(null) }}
+          onSelectFolder={(id) => { setSelectedFolderId(id); setSelectedFeedId(null); setSelectedFilter(null); setSelectedId(null) }}
           onShowAddFeed={() => setShowAddFeed(true)}
           onShowSettings={() => setShowSettings(true)}
           onShowStats={() => setShowStats(true)}
@@ -180,7 +197,7 @@ export default function App() {
             setSelectedId(article.id)
             markRead(article.id)
           }}
-          onMarkAllRead={() => markAllRead(selectedFeedId || undefined)}
+          onMarkAllRead={() => markAllRead(selectedFeedId || undefined, selectedFolderId || undefined)}
           filter={selectedFilter}
           sortOrder={sortOrder}
           onSortOrderChange={handleSortOrderChange}
@@ -196,6 +213,7 @@ export default function App() {
         <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} initialTab={settingsTab} />
         <StatsDialog open={showStats} onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />
       </div>
+      </CacheSettingsProvider>
       </UpdateSettingsProvider>
       </RefreshSettingsProvider>
       </TranslationSettingsProvider>

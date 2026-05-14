@@ -12,16 +12,18 @@ interface Props {
   unreadCount: number
   selectedFeedId: number | null
   selectedFilter: string | null
+  selectedFolderId: number | null
   activeFeedId: number | null
   refreshProgress: { current: number; total: number } | null
   onSelectFeed: (feedId: number) => void
   onSelectFilter: (filter: string) => void
+  onSelectFolder: (folderId: number) => void
   onShowAddFeed: () => void
   onShowSettings: () => void
   onShowStats: () => void
 }
 
-export default function Sidebar({ className, feeds, unreadCount, selectedFeedId, selectedFilter, activeFeedId, refreshProgress, onSelectFeed, onSelectFilter, onShowAddFeed, onShowSettings, onShowStats }: Props) {
+export default function Sidebar({ className, feeds, unreadCount, selectedFeedId, selectedFilter, selectedFolderId, activeFeedId, refreshProgress, onSelectFeed, onSelectFilter, onSelectFolder, onShowAddFeed, onShowSettings, onShowStats }: Props) {
   const [collapsedFolders, setCollapsedFolders] = useState<Set<number>>(new Set())
   const [moveToFolderFeed, setMoveToFolderFeed] = useState<Feed | null>(null)
   const [webviewMaxWidthFeed, setWebviewMaxWidthFeed] = useState<Feed | null>(null)
@@ -64,6 +66,14 @@ export default function Sidebar({ className, feeds, unreadCount, selectedFeedId,
 
   const ungrouped = groupedFeeds[0] || []
   const folderIds = Object.keys(groupedFeeds).filter(k => k !== '0').map(Number)
+
+  const folderUnreadCounts = useMemo(() => {
+    const counts: Record<number, number> = {}
+    for (const fid of folderIds) {
+      counts[fid] = (groupedFeeds[fid] || []).reduce((sum, f) => sum + f.unread_count, 0)
+    }
+    return counts
+  }, [groupedFeeds, folderIds])
 
   const toggleFolder = (folderId: number) => {
     setCollapsedFolders(prev => {
@@ -138,11 +148,12 @@ export default function Sidebar({ className, feeds, unreadCount, selectedFeedId,
           return (
             <div key={folderId} className="sidebar-folder">
               <div
-                className={`sidebar-folder-header ${effectivelyCollapsed.has(folderId) ? 'collapsed' : ''}`}
-                onClick={() => toggleFolder(folderId)}
+                className={`sidebar-folder-header ${effectivelyCollapsed.has(folderId) ? 'collapsed' : ''} ${selectedFolderId === folderId && !selectedFilter && !selectedFeedId ? 'selected' : ''}`}
+                onClick={() => onSelectFolder(folderId)}
               >
-                <span className="sidebar-folder-chevron"><ChevronDown size={10} /></span>
-                {folderNames[folderId] || 'Folder'}
+                <span className="sidebar-folder-chevron" onClick={(e) => { e.stopPropagation(); toggleFolder(folderId) }}><ChevronDown size={10} /></span>
+                <span className="sidebar-folder-label">{folderNames[folderId] || 'Folder'}</span>
+                {folderUnreadCounts[folderId] > 0 && <span className="sidebar-item-count">{folderUnreadCounts[folderId]}</span>}
               </div>
               {!effectivelyCollapsed.has(folderId) && folderFeeds.map(feed => renderFeedItem(feed))}
             </div>

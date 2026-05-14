@@ -20,9 +20,10 @@ export interface Article {
 interface Props {
   feedId: number | null
   filter: string | null
+  folderId?: number
 }
 
-export function useArticles({ feedId, filter }: Props) {
+export function useArticles({ feedId, filter, folderId }: Props) {
   const [articles, setArticles] = useState<Article[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
@@ -30,12 +31,13 @@ export function useArticles({ feedId, filter }: Props) {
     const options: Record<string, unknown> = { limit: 200 }
     let fid = feedId
 
+    if (folderId) options.folderId = folderId
     if (filter === 'unread') options.unreadOnly = true
     if (filter === 'starred') options.starredOnly = true
 
     const result = await window.api.articles.list(fid || undefined, options)
     setArticles(result.articles)
-  }, [feedId, filter])
+  }, [feedId, filter, folderId])
 
   useEffect(() => {
     loadArticles()
@@ -59,8 +61,8 @@ export function useArticles({ feedId, filter }: Props) {
     await window.api.articles.markStarred(id, starred)
   }, [])
 
-  const markAllRead = useCallback(async (feedId?: number) => {
-    await window.api.articles.markAllRead(feedId)
+  const markAllRead = useCallback(async (feedId?: number, folderId?: number) => {
+    await window.api.articles.markAllRead(feedId, folderId)
     setArticles(prev => {
       if (prev.every(a => a.read)) return prev
       return prev.map(a => a.read ? a : { ...a, read: true })

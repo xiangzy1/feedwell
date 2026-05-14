@@ -13,7 +13,7 @@ export default function OverviewCards({ overview }: Props) {
   ]
 
   return (
-    <div className="stats-overview-cards">
+    <div className="stats-section stats-overview-cards">
       {cards.map(card => (
         <div key={card.label} className="stats-card">
           <div className="stats-card-value">{card.value}</div>

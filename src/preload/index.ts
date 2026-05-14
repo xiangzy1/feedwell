@@ -26,7 +26,7 @@ const api = {
     list: (feedId?: number, options?: Record<string, unknown>) => ipcRenderer.invoke('articles:list', feedId, options),
     markRead: (id: number, read?: boolean) => ipcRenderer.invoke('articles:markRead', id, read),
     markStarred: (id: number, starred: boolean) => ipcRenderer.invoke('articles:markStarred', id, starred),
-    markAllRead: (feedId?: number) => ipcRenderer.invoke('articles:markAllRead', feedId)
+    markAllRead: (feedId?: number, folderId?: number) => ipcRenderer.invoke('articles:markAllRead', feedId, folderId)
   },
   folders: {
     list: () => ipcRenderer.invoke('folders:list'),
@@ -82,6 +82,11 @@ const api = {
     onTypedChannel('feeds:refreshProgress', callback),
   onRefreshDone: (callback: () => void) => onChannel('feeds:refreshDone', callback),
   openExternal: (url: string) => ipcRenderer.invoke('openExternal', url),
+  cache: {
+    getSizes: () => ipcRenderer.invoke('cache:getSizes'),
+    clearAll: () => ipcRenderer.invoke('cache:clearAll'),
+    cleanup: () => ipcRenderer.invoke('cache:cleanup'),
+  },
   setCurrentArticle: (feedId: number | null, articleId: number | null) => ipcRenderer.invoke('app:setCurrentArticle', feedId, articleId),
   closeArticleWebview: (webContentsId: number | null, partition: string | null, closeConnections: boolean) =>
     ipcRenderer.invoke('app:closeArticleWebview', webContentsId, partition, closeConnections),

@@ -5,6 +5,7 @@ import { useReadingSettings, type ReadingSettings } from '../../hooks/useReading
 import { useTranslationSettings, type TranslationSettings } from '../../hooks/useTranslationSettings'
 import { useRefreshSettings, type RefreshInterval } from '../../hooks/useRefreshSettings'
 import { useUpdateSettings } from '../../hooks/useUpdateSettings'
+import { useCacheSettings } from '../../hooks/useCacheSettings'
 import './SettingsDialog.css'
 
 const themeOptions: { value: Theme; label: string }[] = [
@@ -50,10 +51,11 @@ const refreshIntervalOptions: { value: RefreshInterval; label: string }[] = [
   { value: 480, label: 'Every 8 hours' },
 ]
 
-type Tab = 'general' | 'appearance' | 'reading' | 'translation' | 'api'
+type Tab = 'general' | 'appearance' | 'reading' | 'translation' | 'api' | 'storage'
 
 const tabs: { id: Tab; label: string }[] = [
   { id: 'general', label: 'General' },
+  { id: 'storage', label: 'Storage' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'reading', label: 'Reading' },
   { id: 'translation', label: 'Translation' },
@@ -66,12 +68,33 @@ interface Props {
   initialTab?: Tab
 }
 
+const maxSizeOptions: { value: number; label: string }[] = [
+  { value: 0, label: 'Unlimited' },
+  { value: 256, label: '256 MB' },
+  { value: 512, label: '512 MB' },
+  { value: 1024, label: '1 GB' },
+  { value: 2048, label: '2 GB' },
+  { value: 4096, label: '4 GB' },
+]
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+const MB = 1024 * 1024
+
 export default function SettingsDialog({ open, onClose, initialTab }: Props) {
   const { theme, setTheme } = useTheme()
   const { settings, updateSettings, limits } = useReadingSettings()
   const { settings: tSettings, updateSettings: updateTSettings } = useTranslationSettings()
   const { settings: rSettings, updateSettings: updateRSettings } = useRefreshSettings()
   const { settings: uSettings, updateSettings: updateUSettings } = useUpdateSettings()
+  const { settings: cSettings, updateSettings: updateCSettings } = useCacheSettings()
+  const [cacheSizes, setCacheSizes] = useState<CacheSizes | null>(null)
+  const [cacheLoading, setCacheLoading] = useState(false)
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
   const [testError, setTestError] = useState('')
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'general')
@@ -98,6 +121,25 @@ export default function SettingsDialog({ open, onClose, initialTab }: Props) {
     ]
     return () => unsubs.forEach(fn => fn())
   }, [open])
+
+  useEffect(() => {
+    if (!open || activeTab !== 'storage') return
+    let cancelled = false
+    setCacheLoading(true)
+    window.api.cache.getSizes().then(sizes => {
+      if (!cancelled) { setCacheSizes(sizes); setCacheLoading(false) }
+    }).catch(() => { if (!cancelled) setCacheLoading(false) })
+    return () => { cancelled = true }
+  }, [open, activeTab])
+
+  const handleClearCache = useCallback(async () => {
+    setCacheLoading(true)
+    try {
+      const sizes = await window.api.cache.clearAll()
+      setCacheSizes(sizes)
+    } catch { /* ignore */ }
+    setCacheLoading(false)
+  }, [])
 
   const handleCheckUpdate = useCallback(() => {
     setUpdateState('checking')
@@ -143,6 +185,73 @@ export default function SettingsDialog({ open, onClose, initialTab }: Props) {
         </nav>
 
         <div className="settings-content">
+          {activeTab === 'storage' && (
+            <div className="settings-panel" key="storage">
+              <div className="dialog-column">
+                <label className="dialog-field-label">Cache Usage</label>
+                {cacheSizes && (
+                  cSettings.maxSizeMB > 0 ? (
+                    <div className="settings-cache-bar-container">
+                      <div className="update-progress-container">
+                        <div
+                          className="update-progress-bar"
+                          style={{
+                            width: `${Math.min(100, (cacheSizes.total / (cSettings.maxSizeMB * MB)) * 100)}%`,
+                            background: cacheSizes.total > cSettings.maxSizeMB * MB * 0.9 ? '#e74c3c' : undefined,
+                          }}
+                        />
+                        <span className="update-progress-text">
+                          {formatBytes(cacheSizes.total)} / {formatBytes(cSettings.maxSizeMB * MB)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="settings-cache-total">{formatBytes(cacheSizes.total)} total</div>
+                  )
+                )}
+                {cacheLoading && !cacheSizes && <span className="dialog-field-label">Calculating...</span>}
+                {cacheSizes && (
+                  <div className="settings-cache-group">
+                    <div className="settings-cache-row">
+                      <span className="settings-cache-label">Webview Cache</span>
+                      <span className="settings-cache-size">{formatBytes(cacheSizes.webviewCache)}</span>
+                    </div>
+                    <div className="settings-cache-row">
+                      <span className="settings-cache-label">Database</span>
+                      <span className="settings-cache-size">{formatBytes(cacheSizes.databaseSize)}</span>
+                    </div>
+                    <div className="settings-cache-row">
+                      <span className="settings-cache-label">Favicons</span>
+                      <span className="settings-cache-size">{formatBytes(cacheSizes.faviconSize)}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="settings-fieldset-divider" />
+                <div>
+                  <label className="dialog-field-label">Maximum Cache Size</label>
+                  <select
+                    className="dialog-input"
+                    value={cSettings.maxSizeMB}
+                    onChange={e => updateCSettings({ maxSizeMB: Number(e.target.value) })}
+                  >
+                    {maxSizeOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <button
+                    className="dialog-test-btn"
+                    onClick={handleClearCache}
+                    disabled={cacheLoading}
+                  >
+                    {cacheLoading ? 'Clearing...' : 'Clear Cache'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'general' && (
             <div className="settings-panel" key="general">
               <div className="dialog-column">
