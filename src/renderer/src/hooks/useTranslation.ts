@@ -79,6 +79,15 @@ export function useTranslation(
     }
 
     const doTranslate = async () => {
+      const off = window.api.translation.onTranslationChunk(({ articleId: aid, index, translated }) => {
+        if (aid !== articleId || requestIdRef.current !== requestId) return
+        const block = placeholders[index]
+        if (block?.isConnected) {
+          block.className = `translation-block translation-${tagClasses[index]}`
+          block.textContent = translated
+        }
+      })
+
       try {
         const results = await window.api.translation.translate(
           articleId,
@@ -87,6 +96,7 @@ export function useTranslation(
 
         if (requestIdRef.current !== requestId) return
 
+        // Final sweep for any remaining placeholders
         for (let i = 0; i < placeholders.length; i++) {
           const block = placeholders[i]
           if (block.isConnected) {
@@ -107,6 +117,8 @@ export function useTranslation(
         }
         errorRef.current = message
         isTranslatingRef.current = false
+      } finally {
+        off()
       }
     }
 

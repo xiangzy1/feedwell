@@ -50,7 +50,9 @@ const api = {
   },
   translation: {
     translate: (articleId: number, texts: string[]) => ipcRenderer.invoke('translation:translate', { articleId, texts }),
-    testConnection: () => ipcRenderer.invoke('translation:testConnection')
+    testConnection: () => ipcRenderer.invoke('translation:testConnection'),
+    onTranslationChunk: (callback: (data: { articleId: number; index: number; translated: string }) => void) =>
+      onTypedChannel('translation:chunk', callback)
   },
   summary: {
     summarize: (articleId: number, title: string, content: string) => ipcRenderer.invoke('summary:summarize', { articleId, title, content }),

@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { callOpenAI, type OpenAIConfig } from './openai-client'
+import { callOpenAI, streamOpenAI, type OpenAIConfig } from './openai-client'
 
 export interface TranslationConfig extends OpenAIConfig {
   provider: 'ai' | 'google' | 'microsoft'
@@ -23,18 +23,68 @@ export async function translateTexts(texts: string[], config: TranslationConfig)
   }
 }
 
+const COMPLETE_JSON_STRING = /"(?:[^"\\]|\\.)*"/g
+
+function stripMarkdownFences(text: string): string {
+  return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+}
+
+function parseTranslationResponse(raw: string, expectedCount: number): string[] {
+  const cleaned = stripMarkdownFences(raw)
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch {
+    parsed = JSON.parse(cleaned + ']')
+  }
+  if (!Array.isArray(parsed) || parsed.length !== expectedCount) {
+    throw new Error(`AI returned ${Array.isArray(parsed) ? parsed.length : 'non-array'} results, expected ${expectedCount}`)
+  }
+  return parsed.map(String)
+}
+
+export async function streamTranslateTexts(
+  texts: string[],
+  config: TranslationConfig,
+  onResult: (index: number, translated: string) => void
+): Promise<string[]> {
+  if (texts.length === 0) return []
+
+  let accumulated = ''
+  let emittedCount = 0
+
+  await streamOpenAI(config, [
+    { role: 'system', content: `Translate the following texts to ${config.targetLang}. Return a JSON array of translated strings in the same order. Only return the JSON array, nothing else.` },
+    { role: 'user', content: JSON.stringify(texts) }
+  ], (delta) => {
+    accumulated += delta
+    const cleaned = stripMarkdownFences(accumulated)
+    // Only complete quoted strings match; the trailing incomplete one won't
+    const matches = [...cleaned.matchAll(COMPLETE_JSON_STRING)]
+    if (matches.length > emittedCount) {
+      for (let i = emittedCount; i < matches.length; i++) {
+        onResult(i, JSON.parse(matches[i][0]))
+      }
+      emittedCount = matches.length
+    }
+  }, 0.3)
+
+  // Final parse with the complete text
+  const results = parseTranslationResponse(accumulated, texts.length)
+  for (let i = emittedCount; i < results.length; i++) {
+    onResult(i, results[i])
+  }
+
+  return results
+}
+
 async function translateViaAI(texts: string[], config: TranslationConfig): Promise<string[]> {
   const content = await callOpenAI(config, [
     { role: 'system', content: `Translate the following texts to ${config.targetLang}. Return a JSON array of translated strings in the same order. Only return the JSON array, nothing else.` },
     { role: 'user', content: JSON.stringify(texts) }
   ], 0.3)
 
-  const cleaned = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
-  const parsed = JSON.parse(cleaned)
-  if (!Array.isArray(parsed) || parsed.length !== texts.length) {
-    throw new Error(`AI returned ${Array.isArray(parsed) ? parsed.length : 'non-array'} results, expected ${texts.length}`)
-  }
-  return parsed.map(String)
+  return parseTranslationResponse(content, texts.length)
 }
 
 async function translateViaGoogle(texts: string[], config: TranslationConfig): Promise<string[]> {

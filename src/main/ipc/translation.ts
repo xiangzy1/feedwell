@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDb } from '../db'
 import { getSettingJson } from './settings'
-import { hashText, translateTexts, type TranslationConfig } from '../services/translator'
+import { hashText, translateTexts, streamTranslateTexts, type TranslationConfig } from '../services/translator'
 
 interface CachedTranslation {
   original_text: string
@@ -24,7 +24,7 @@ function loadConfig(): TranslationConfig {
 }
 
 export function registerTranslationIpc(): void {
-  ipcMain.handle('translation:translate', async (_event, { articleId, texts }: { articleId: number; texts: string[] }) => {
+  ipcMain.handle('translation:translate', async (event, { articleId, texts }: { articleId: number; texts: string[] }) => {
     if (!texts || texts.length === 0) return []
 
     const config = loadConfig()
@@ -39,21 +39,44 @@ export function registerTranslationIpc(): void {
 
     const cachedMap = new Map(cached.map(c => [c.original_text, c.translated]))
 
-    const uncachedTexts = texts.filter(t => !cachedMap.has(t))
+    // Send cached results immediately as chunks
+    const uncachedIndices: number[] = []
+    for (let i = 0; i < texts.length; i++) {
+      const cached = cachedMap.get(texts[i])
+      if (cached !== undefined) {
+        event.sender.send('translation:chunk', { articleId, index: i, translated: cached })
+      } else {
+        uncachedIndices.push(i)
+      }
+    }
+
+    const uncachedTexts = uncachedIndices.map(i => texts[i])
 
     if (uncachedTexts.length > 0) {
-      const translated = await translateTexts(uncachedTexts, config)
-
       const insertStmt = db.prepare(
         'INSERT OR IGNORE INTO translations (article_id, target_lang, source_hash, original_text, translated, provider) VALUES (?, ?, ?, ?, ?, ?)'
       )
+
+      let translated: string[]
+      if (config.provider === 'ai') {
+        translated = await streamTranslateTexts(uncachedTexts, config, (localIdx, result) => {
+          const globalIdx = uncachedIndices[localIdx]
+          event.sender.send('translation:chunk', { articleId, index: globalIdx, translated: result })
+          cachedMap.set(uncachedTexts[localIdx], result)
+        })
+      } else {
+        translated = await translateTexts(uncachedTexts, config)
+        for (let i = 0; i < uncachedTexts.length; i++) {
+          event.sender.send('translation:chunk', { articleId, index: uncachedIndices[i], translated: translated[i] })
+        }
+      }
+
       const insertMany = db.transaction((items: { text: string; result: string }[]) => {
         for (const { text, result } of items) {
           insertStmt.run(articleId, targetLang, hashText(text, targetLang), text, result, config.provider)
         }
       })
       insertMany(uncachedTexts.map((text, i) => ({ text, result: translated[i] })))
-
       for (let i = 0; i < uncachedTexts.length; i++) {
         cachedMap.set(uncachedTexts[i], translated[i])
       }

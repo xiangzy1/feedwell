@@ -87,31 +87,50 @@ export function useWebviewTranslation(
 
         if (requestIdRef.current !== requestId) return
 
-        // Step 3: Call translation IPC
-        const results = await window.api.translation.translate(
-          articleId,
-          items.map(t => t.text)
-        )
-
-        if (requestIdRef.current !== requestId) return
-
-        // Step 4: Update placeholders with translated text
-        const resultsJson = JSON.stringify(results)
-        await wv.executeJavaScript(`
-          (() => {
-            const results = ${resultsJson};
-            const items = ${itemsJson};
-            for (let i = 0; i < items.length; i++) {
-              const el = document.querySelector('[data-__tr-idx="' + items[i].idx + '"]');
-              if (!el) continue;
+        // Subscribe to streaming chunks
+        const off = window.api.translation.onTranslationChunk(({ articleId: aid, index, translated }) => {
+          if (aid !== articleId || requestIdRef.current !== requestId) return
+          wv.executeJavaScript(`
+            (() => {
+              const el = document.querySelector('[data-__tr-idx="${items[index].idx}"]');
+              if (!el) return;
               const block = el.querySelector('.translation-block[data-__tr-block]');
               if (block) {
-                block.className = 'translation-block translation-' + items[i].tag;
-                block.textContent = results[i] || '';
+                block.className = 'translation-block translation-${items[index].tag}';
+                block.textContent = ${JSON.stringify(translated)};
               }
-            }
-          })()
-        `)
+            })()
+          `).catch(() => {})
+        })
+
+        try {
+          const results = await window.api.translation.translate(
+            articleId,
+            items.map(t => t.text)
+          )
+
+          if (requestIdRef.current !== requestId) return
+
+          // Final sweep for any remaining placeholders
+          const resultsJson = JSON.stringify(results)
+          await wv.executeJavaScript(`
+            (() => {
+              const results = ${resultsJson};
+              const items = ${itemsJson};
+              for (let i = 0; i < items.length; i++) {
+                const el = document.querySelector('[data-__tr-idx="' + items[i].idx + '"]');
+                if (!el) continue;
+                const block = el.querySelector('.translation-block[data-__tr-block]');
+                if (block) {
+                  block.className = 'translation-block translation-' + items[i].tag;
+                  block.textContent = results[i] || '';
+                }
+              }
+            })()
+          `)
+        } finally {
+          off()
+        }
       } catch (err) {
         if (requestIdRef.current !== requestId) return
         const msg = err instanceof Error ? err.message : 'Translation failed'
