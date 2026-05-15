@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Circle, CircleDot, ArrowUpDown, Check } from 'lucide-react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ArticleRow from './ArticleRow'
@@ -19,11 +19,36 @@ interface Props {
 
 export default function ArticleList({ sortedArticles, selectedId, onSelect, onMarkAllRead, filter, sortOrder, onSortOrderChange }: Props) {
   const [unreadOnly, setUnreadOnly] = useState(false)
+  const [unreadSnapshot, setUnreadSnapshot] = useState<Set<number>>(new Set())
   const virtuosoRef = useRef<VirtuosoHandle>(null)
+  const prevIdKey = useRef<string>('')
+
+  // Recalculate snapshot when articles are structurally replaced (folder/feed change),
+  // but NOT when only read status changes in-place
+  useEffect(() => {
+    if (!unreadOnly) return
+    const idKey = sortedArticles.map(a => a.id).sort((a, b) => a - b).join(',')
+    if (idKey !== prevIdKey.current) {
+      prevIdKey.current = idKey
+      setUnreadSnapshot(new Set(sortedArticles.filter(a => !a.read).map(a => a.id)))
+    }
+  }, [sortedArticles, unreadOnly])
+
+  const toggleUnreadOnly = useCallback(() => {
+    setUnreadOnly(prev => {
+      const next = !prev
+      if (next) {
+        const snapshot = new Set(sortedArticles.filter(a => !a.read).map(a => a.id))
+        setUnreadSnapshot(snapshot)
+        prevIdKey.current = sortedArticles.map(a => a.id).sort((a, b) => a - b).join(',')
+      }
+      return next
+    })
+  }, [sortedArticles])
 
   const sorted = useMemo(() => {
-    return unreadOnly ? sortedArticles.filter(a => !a.read) : sortedArticles
-  }, [sortedArticles, unreadOnly])
+    return unreadOnly ? sortedArticles.filter(a => unreadSnapshot.has(a.id)) : sortedArticles
+  }, [sortedArticles, unreadOnly, unreadSnapshot])
 
   const hasUnread = sortedArticles.some(a => !a.read)
 
@@ -43,7 +68,7 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
         {!filter && (
           <button
             className={`toolbar-btn ${unreadOnly ? 'active' : ''}`}
-            onClick={() => setUnreadOnly(v => !v)}
+            onClick={toggleUnreadOnly}
             title={unreadOnly ? 'Show all' : 'Show unread only'}
           >
             {unreadOnly ? <><CircleDot size={13} /> Unread</> : <><Circle size={13} /> All</>}
