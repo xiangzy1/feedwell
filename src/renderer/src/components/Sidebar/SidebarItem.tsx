@@ -1,30 +1,31 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Check, Compass } from 'lucide-react'
+import FeedIcon from '../ArticleList/FeedIcon'
+import { Feed } from '../../hooks/useFeeds'
 
 interface Props {
   label: string
   count?: number
   selected: boolean
   active?: boolean
-  feedId?: number
+  feed?: Feed
   onClick: () => void
   onDelete?: () => void
   onRefresh?: () => void
   onToggleBrowser?: () => void
-  openInBrowser?: boolean
-  feedUrl?: string
   onOpenFeedUrl?: () => void
   onMoveToFolder?: () => void
   onSetWebviewMaxWidth?: () => void
+  icon?: React.ReactNode
 }
 
-export default function SidebarItem({ label, count, selected, active, feedId, onClick, onDelete, onRefresh, onToggleBrowser, openInBrowser, feedUrl, onOpenFeedUrl, onMoveToFolder, onSetWebviewMaxWidth }: Props) {
+export default function SidebarItem({ label, count, selected, active, feed, onClick, onDelete, onRefresh, onToggleBrowser, onOpenFeedUrl, onMoveToFolder, onSetWebviewMaxWidth, icon }: Props) {
   const [showMenu, setShowMenu] = useState(false)
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({})
   const clickPos = useRef({ x: 0, y: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const hasMenu = !!(onDelete || onRefresh || onToggleBrowser || feedUrl || onOpenFeedUrl || onMoveToFolder || onSetWebviewMaxWidth)
+  const hasMenu = !!(feed || onDelete || onRefresh || onToggleBrowser || onOpenFeedUrl || onMoveToFolder || onSetWebviewMaxWidth)
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -56,12 +57,16 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
     <>
       <div
         className={`sidebar-item ${selected ? 'selected' : ''} ${active ? 'active-feed' : ''}`}
-        data-feed-id={feedId}
+        data-feed-id={feed?.id}
         onClick={() => { closeMenu(); onClick() }}
         onContextMenu={handleContextMenu}
       >
+        {icon && <span className="sidebar-item-icon">{icon}</span>}
+        {!icon && (
+          <FeedIcon url={feed?.favicon_url} cachedName={feed?.favicon_cached} feedId={feed?.id} title={label} className="sidebar-feed-icon" />
+        )}
         <span className="sidebar-item-label">{label}</span>
-        {openInBrowser ? <span className="sidebar-item-badge" title="Opens in browser"><Compass size={10} /></span> : null}
+        {feed?.open_in_browser ? <span className="sidebar-item-badge" title="Opens in browser"><Compass size={10} /></span> : null}
         {count !== undefined && count > 0 && (
           <span className="sidebar-item-count">{count}</span>
         )}
@@ -82,10 +87,10 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
             )}
             {onToggleBrowser && (
               <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onToggleBrowser(); closeMenu() }}>
-                {openInBrowser ? <>WebView Mode <Check size={13} style={{ verticalAlign: '-2px', marginLeft: 2 }} /></> : 'WebView Mode'}
+                {feed?.open_in_browser ? <>WebView Mode <Check size={13} style={{ verticalAlign: '-2px', marginLeft: 2 }} /></> : 'WebView Mode'}
               </div>
             )}
-            {onSetWebviewMaxWidth && !!openInBrowser && (
+            {onSetWebviewMaxWidth && !!feed?.open_in_browser && (
               <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); onSetWebviewMaxWidth(); closeMenu() }}>
                 Set Webview Max Width…
               </div>
@@ -95,8 +100,8 @@ export default function SidebarItem({ label, count, selected, active, feedId, on
                 Open Feed in Browser
               </div>
             )}
-            {feedUrl && (
-              <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(feedUrl); closeMenu() }}>
+            {feed?.url && (
+              <div className="context-menu-item" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(feed.url); closeMenu() }}>
                 Copy Feed URL
               </div>
             )}

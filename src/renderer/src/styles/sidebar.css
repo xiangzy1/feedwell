@@ -70,11 +70,11 @@
   padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
-  gap: 4px;
+  gap: 6px;
 }
 
 .sidebar-folder > .sidebar-item {
-  padding-left: 22px;
+  padding-left: 26px;
 }
 
 .sidebar-item:hover { background: var(--bg-hover); }
@@ -90,6 +90,28 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
+}
+
+.sidebar-item-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.sidebar-folder-icon {
+  margin-right: 4px;
+}
+
+.sidebar-feed-icon {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 3px !important;
+  flex-shrink: 0;
+}
+
+.sidebar-feed-icon.feed-icon-placeholder {
+  font-size: 8px !important;
 }
 
 .sidebar-item-count {
@@ -113,7 +135,7 @@
 .sidebar-toolbar {
   display: flex;
   gap: 4px;
-  padding: 8px;
+  padding: 0 8px;
   border-top: 1px solid var(--border-color);
 }
 
@@ -190,4 +212,3 @@
   font-variant-numeric: tabular-nums;
 }
 .webview-custom-input:focus { border-color: var(--accent); }
-

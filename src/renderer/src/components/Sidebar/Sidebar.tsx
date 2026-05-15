@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, RefreshCw, BarChart3, Settings, ChevronDown } from 'lucide-react'
+import { Plus, RefreshCw, BarChart3, Settings, ChevronDown, Inbox, BookOpen, Star, Folder } from 'lucide-react'
 import SidebarItem from './SidebarItem'
 import MoveToFolderDialog from './MoveToFolderDialog'
 import WebviewMaxWidthDialog from './WebviewMaxWidthDialog'
@@ -100,17 +100,15 @@ export default function Sidebar({ className, feeds, unreadCount, selectedFeedId,
   const renderFeedItem = (feed: Feed) => (
     <SidebarItem
       key={feed.id}
+      feed={feed}
       label={feed.title}
       count={feed.unread_count}
       selected={selectedFeedId === feed.id && !selectedFilter}
       active={activeFeedId === feed.id && !(selectedFeedId === feed.id && !selectedFilter)}
-      feedId={feed.id}
       onClick={() => onSelectFeed(feed.id)}
       onDelete={() => handleDelete(feed.id)}
       onRefresh={() => window.api.feeds.refresh(feed.id)}
       onToggleBrowser={() => handleToggleBrowser(feed.id, feed.open_in_browser)}
-      openInBrowser={feed.open_in_browser}
-      feedUrl={feed.url}
       onOpenFeedUrl={() => window.api.openExternal(feed.url)}
       onMoveToFolder={() => setMoveToFolderFeed(feed)}
       onSetWebviewMaxWidth={() => setWebviewMaxWidthFeed(feed)}
@@ -127,17 +125,20 @@ export default function Sidebar({ className, feeds, unreadCount, selectedFeedId,
           label="All"
           selected={selectedFilter === 'all'}
           onClick={() => onSelectFilter('all')}
+          icon={<Inbox size={14} />}
         />
         <SidebarItem
           label="Unread"
           count={unreadCount}
           selected={selectedFilter === 'unread'}
           onClick={() => onSelectFilter('unread')}
+          icon={<BookOpen size={14} />}
         />
         <SidebarItem
           label="Starred"
           selected={selectedFilter === 'starred'}
           onClick={() => onSelectFilter('starred')}
+          icon={<Star size={14} />}
         />
       </div>
 
@@ -152,6 +153,7 @@ export default function Sidebar({ className, feeds, unreadCount, selectedFeedId,
                 onClick={() => onSelectFolder(folderId)}
               >
                 <span className="sidebar-folder-chevron" onClick={(e) => { e.stopPropagation(); toggleFolder(folderId) }}><ChevronDown size={10} /></span>
+                <span className="sidebar-item-icon sidebar-folder-icon"><Folder size={12} /></span>
                 <span className="sidebar-folder-label">{folderNames[folderId] || 'Folder'}</span>
                 {folderUnreadCounts[folderId] > 0 && <span className="sidebar-item-count">{folderUnreadCounts[folderId]}</span>}
               </div>

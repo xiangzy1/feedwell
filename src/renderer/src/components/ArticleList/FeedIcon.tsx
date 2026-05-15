@@ -1,13 +1,14 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, memo } from 'react'
 
 interface Props {
   url: string | null | undefined
   cachedName?: string | null
   feedId?: number
   title: string
+  className?: string
 }
 
-export default function FeedIcon({ url, cachedName, feedId, title }: Props) {
+function FeedIcon({ url, cachedName, feedId, title, className }: Props) {
   const imgError = useRef(false)
   const [, forceUpdate] = useState(0)
 
@@ -15,11 +16,12 @@ export default function FeedIcon({ url, cachedName, feedId, title }: Props) {
   const letter = (title || '?')[0].toUpperCase()
   const hue = hashString(title || '') % 360
   const bgColor = `hsl(${hue}, 55%, 55%)`
+  const cls = ['feed-icon', className].filter(Boolean).join(' ')
 
   if (iconSrc && !imgError.current) {
     return (
       <img
-        className="feed-icon"
+        className={cls}
         src={iconSrc}
         alt=""
         onError={() => {
@@ -35,13 +37,15 @@ export default function FeedIcon({ url, cachedName, feedId, title }: Props) {
 
   return (
     <div
-      className="feed-icon feed-icon-placeholder"
+      className={`${cls} feed-icon-placeholder`}
       style={{ backgroundColor: bgColor }}
     >
       {letter}
     </div>
   )
 }
+
+export default memo(FeedIcon)
 
 function hashString(s: string): number {
   let hash = 0
