@@ -89,12 +89,11 @@ export default function App() {
   const updateCtx = useUpdateSettingsProvider()
   const cacheCtx = useCacheSettingsProvider()
   const { feeds, reload: reloadFeeds } = useFeeds()
-  const { articles, selectedId, setSelectedId, markRead, markStarred, markAllRead } = useArticles({
+  const { articles, selectedArticle, setSelectedArticle, markRead, markStarred, markAllRead } = useArticles({
     feedId: selectedFeedId,
     filter: selectedFilter,
-    folderId: selectedFolderId
+    folderId: selectedFolderId ?? undefined
   })
-  const selectedArticle = useMemo(() => articles.find(a => a.id === selectedId) ?? null, [articles, selectedId])
   const unreadCount = useMemo(() => feeds.reduce((sum, f) => sum + f.unread_count, 0), [feeds])
 
   const activeFeedId = selectedArticle?.feed_id ?? selectedFeedId
@@ -113,13 +112,12 @@ export default function App() {
 
   useShortcuts({
     articles: sortedArticles,
-    selectedId,
+    selectedArticle,
     onSelectArticle: (article) => {
-      setSelectedId(article.id)
+      setSelectedArticle(article)
     },
     onMarkRead: markRead,
     onToggleStar: markStarred,
-    selectedArticle
   })
 
   useEffect(() => {
@@ -182,9 +180,9 @@ export default function App() {
           selectedFolderId={selectedFolderId}
           activeFeedId={activeFeedId}
           refreshProgress={refreshProgress}
-          onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null); setSelectedFolderId(null); setSelectedId(null) }}
-          onSelectFilter={(filter) => { setSelectedFilter(filter); setSelectedFeedId(null); setSelectedFolderId(null); setSelectedId(null) }}
-          onSelectFolder={(id) => { setSelectedFolderId(id); setSelectedFeedId(null); setSelectedFilter(null); setSelectedId(null) }}
+          onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null); setSelectedFolderId(null); setSelectedArticle(null) }}
+          onSelectFilter={(filter) => { setSelectedFilter(filter); setSelectedFeedId(null); setSelectedFolderId(null); setSelectedArticle(null) }}
+          onSelectFolder={(id) => { setSelectedFolderId(id); setSelectedFeedId(null); setSelectedFilter(null); setSelectedArticle(null) }}
           onShowAddFeed={() => setShowAddFeed(true)}
           onShowSettings={() => setShowSettings(true)}
           onShowStats={() => setShowStats(true)}
@@ -192,9 +190,9 @@ export default function App() {
         <ResizeHandle className={sidebarCollapsed ? 'hidden' : undefined} onResize={handleSidebarResize} />
         <ArticleList
           sortedArticles={sortedArticles}
-          selectedId={selectedId}
+          selectedId={selectedArticle?.id ?? null}
           onSelect={(article) => {
-            setSelectedId(article.id)
+            setSelectedArticle(article)
             markRead(article.id)
           }}
           onMarkAllRead={() => markAllRead(selectedFeedId || undefined, selectedFolderId || undefined)}

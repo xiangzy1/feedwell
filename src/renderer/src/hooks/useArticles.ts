@@ -25,7 +25,7 @@ interface Props {
 
 export function useArticles({ feedId, filter, folderId }: Props) {
   const [articles, setArticles] = useState<Article[]>([])
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
 
   const loadArticles = useCallback(async () => {
     const options: Record<string, unknown> = { limit: 200 }
@@ -50,6 +50,7 @@ export function useArticles({ feedId, filter, folderId }: Props) {
   useEffect(() => {
     return window.api.onArticleStateChanged(({ id, read, starred }) => {
       setArticles(prev => prev.map(a => a.id === id ? { ...a, read, starred } : a))
+      setSelectedArticle(prev => prev?.id === id ? { ...prev, read, starred } : prev)
     })
   }, [])
 
@@ -69,5 +70,5 @@ export function useArticles({ feedId, filter, folderId }: Props) {
     })
   }, [])
 
-  return { articles, selectedId, setSelectedId, markRead, markStarred, markAllRead }
+  return { articles, selectedArticle, setSelectedArticle, markRead, markStarred, markAllRead }
 }

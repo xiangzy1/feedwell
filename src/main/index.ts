@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain, nativeImage, nativeTheme, powerMonitor, protocol, net, session, shell, webContents, type Session } from 'electron'
+import { app, BrowserWindow, clipboard, Menu, ipcMain, nativeImage, nativeTheme, powerMonitor, protocol, net, session, shell, webContents, type Session } from 'electron'
 import { join } from 'path'
 import { getDb, initDatabase } from './db'
 import { getSetting, getSettingJson, setSetting } from './ipc/settings'
@@ -71,6 +71,60 @@ app.on('web-contents-created', (_event, contents) => {
           broadcast('feeds:updated')
         }
       } catch { /* ignore */ }
+    })
+
+    contents.on('context-menu', (_e, params) => {
+      const items: Electron.MenuItemConstructorOptions[] = []
+
+      if (params.misspelledWord && params.dictionarySuggestions.length > 0) {
+        for (const suggestion of params.dictionarySuggestions.slice(0, 5)) {
+          items.push({ label: suggestion, click: () => contents.replaceMisspelling(suggestion) })
+        }
+        items.push({ type: 'separator' })
+      }
+
+      if (params.linkURL) {
+        items.push(
+          { label: 'Open Link in Browser', click: () => shell.openExternal(params.linkURL) },
+          { label: 'Copy Link Address', click: () => clipboard.writeText(params.linkURL) },
+          { type: 'separator' }
+        )
+      }
+
+      if (params.hasImageContents && params.srcURL) {
+        items.push(
+          { label: 'Copy Image', click: () => { const img = nativeImage.createFromDataURL(params.srcURL); if (!img.isEmpty()) clipboard.writeImage(img) } },
+          { label: 'Copy Image Address', click: () => clipboard.writeText(params.srcURL) },
+          { label: 'Save Image As...', click: () => contents.downloadURL(params.srcURL) },
+          { type: 'separator' }
+        )
+      }
+
+      if (params.selectionText) {
+        items.push(
+          { label: 'Copy', accelerator: 'CmdOrCtrl+C', click: () => clipboard.writeText(params.selectionText) },
+          { label: 'Look Up in Dictionary', click: () => contents.showDefinitionForSelection() },
+          { type: 'separator' }
+        )
+      }
+
+      const canGoBack = contents.navigationHistory.canGoBack()
+      const canGoForward = contents.navigationHistory.canGoForward()
+      if (canGoBack || canGoForward) {
+        if (canGoBack) items.push({ label: 'Back', click: () => contents.navigationHistory.goBack() })
+        if (canGoForward) items.push({ label: 'Forward', click: () => contents.navigationHistory.goForward() })
+        items.push({ type: 'separator' })
+      }
+
+      items.push(
+        { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: () => contents.reload() },
+        { type: 'separator' },
+        { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => contents.selectAll() }
+      )
+
+      if (items.length > 0) {
+        Menu.buildFromTemplate(items).popup({ window: BrowserWindow.fromWebContents(contents) ?? undefined })
+      }
     })
   }
 })

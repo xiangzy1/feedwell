@@ -3,19 +3,18 @@ import { Article } from './useArticles'
 
 interface Props {
   articles: Article[]
-  selectedId: number | null
   onSelectArticle: (article: Article) => void
   onMarkRead: (id: number) => void
   onToggleStar: (id: number, starred: boolean) => void
   selectedArticle: Article | null
 }
 
-export function useShortcuts({ articles, selectedId, onSelectArticle, onMarkRead, onToggleStar, selectedArticle }: Props) {
+export function useShortcuts({ articles, onSelectArticle, onMarkRead, onToggleStar, selectedArticle }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
-      const currentIndex = articles.findIndex(a => a.id === selectedId)
+      const currentIndex = articles.findIndex(a => a.id === selectedArticle?.id)
 
       switch (e.key) {
         case 'j':
@@ -55,5 +54,5 @@ export function useShortcuts({ articles, selectedId, onSelectArticle, onMarkRead
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [articles, selectedId, selectedArticle, onSelectArticle, onMarkRead, onToggleStar])
+  }, [articles, selectedArticle, onSelectArticle, onMarkRead, onToggleStar])
 }
