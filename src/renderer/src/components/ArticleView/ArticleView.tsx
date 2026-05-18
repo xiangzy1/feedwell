@@ -263,6 +263,7 @@ function WebviewView({ url, feedId, webviewMaxWidth, articleId, translationEnabl
     }
     const onFail = (e: Electron.DidFailLoadEvent) => {
       if (e.errorCode === -3) return
+      if (initialLoadDone.current) return
       dispatch({ loading: false, error: { code: e.errorCode, desc: e.errorDescription } })
     }
     const onConsoleMsg = (e: Electron.ConsoleMessageEvent) => {
