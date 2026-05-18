@@ -24,6 +24,7 @@ const api = {
   },
   articles: {
     list: (feedId?: number, options?: Record<string, unknown>) => ipcRenderer.invoke('articles:list', feedId, options),
+    get: (id: number) => ipcRenderer.invoke('articles:get', id),
     markRead: (id: number, read?: boolean) => ipcRenderer.invoke('articles:markRead', id, read),
     markStarred: (id: number, starred: boolean) => ipcRenderer.invoke('articles:markStarred', id, starred),
     markAllRead: (feedId?: number, folderId?: number) => ipcRenderer.invoke('articles:markAllRead', feedId, folderId)

@@ -1,57 +1,64 @@
 import { getDb } from '../db'
+import * as sax from 'sax'
 
 export async function importOpml(xmlString: string): Promise<{ imported: number; failed: number }> {
   let imported = 0
   let failed = 0
 
   const folderStack: { id: number | null; name: string }[] = [{ id: null, name: '' }]
-  const tagRegex = /<\/?outline[^>]*>/g
-  let match: RegExpExecArray | null
 
-  while ((match = tagRegex.exec(xmlString)) !== null) {
-    const tag = match[0]
+  return new Promise((resolve, reject) => {
+    const parser = sax.parser(true) // strict mode
 
-    if (tag.startsWith('</')) {
-      if (folderStack.length > 1) folderStack.pop()
-      continue
-    }
+    parser.onopentag = (node) => {
+      if (node.name !== 'outline') return
 
-    const isSelfClosing = tag.endsWith('/>')
-    const xmlUrl = tag.match(/xmlUrl=["']([^"']+)["']/)?.[1]
+      const attrs = node.attributes
+      const xmlUrl = attrs.xmlUrl as string | undefined
 
-    if (xmlUrl) {
-      const title = tag.match(/title=["']([^"']+)["']/)?.[1]
-        || tag.match(/text=["']([^"']+)["']/)?.[1]
-        || xmlUrl
-      const category = tag.match(/category=["']([^"']+)["']/)?.[1]
-      const folderId = category ? getOrCreateFolder(category) : folderStack[folderStack.length - 1].id
+      if (xmlUrl) {
+        const title = (attrs.title as string) || (attrs.text as string) || xmlUrl
+        const category = attrs.category as string | undefined
+        const folderId = category ? getOrCreateFolder(category) : folderStack[folderStack.length - 1].id
 
-      try {
-        const existing = getDb().prepare('SELECT id FROM feeds WHERE url = ?').get(xmlUrl) as { id: number } | undefined
-        if (existing) {
-          if (folderId) {
-            getDb().prepare('UPDATE feeds SET folder_id = ? WHERE id = ? AND folder_id IS NULL').run(folderId, existing.id)
+        try {
+          const existing = getDb().prepare('SELECT id FROM feeds WHERE url = ?').get(xmlUrl) as { id: number } | undefined
+          if (existing) {
+            if (folderId) {
+              getDb().prepare('UPDATE feeds SET folder_id = ? WHERE id = ? AND folder_id IS NULL').run(folderId, existing.id)
+            }
+          } else {
+            getDb().prepare('INSERT INTO feeds (title, url, folder_id) VALUES (?, ?, ?)').run(title, xmlUrl, folderId)
+            imported++
           }
-        } else {
-          getDb().prepare('INSERT INTO feeds (title, url, folder_id) VALUES (?, ?, ?)').run(title, xmlUrl, folderId)
-          imported++
+        } catch {
+          failed++
         }
-      } catch {
-        failed++
-      }
-    } else {
-      const title = tag.match(/title=["']([^"']+)["']/)?.[1]
-        || tag.match(/text=["']([^"']+)["']/)?.[1]
-      if (title) {
-        const folderId = getOrCreateFolder(title)
-        if (!isSelfClosing) {
+      } else {
+        const title = (attrs.title as string) || (attrs.text as string)
+        if (title) {
+          const folderId = getOrCreateFolder(title)
           folderStack.push({ id: folderId, name: title })
         }
       }
     }
-  }
 
-  return { imported, failed }
+    parser.onclosetag = (name) => {
+      if (name === 'outline' && folderStack.length > 1) {
+        folderStack.pop()
+      }
+    }
+
+    parser.onerror = (err) => {
+      reject(err)
+    }
+
+    parser.onend = () => {
+      resolve({ imported, failed })
+    }
+
+    parser.write(xmlString).close()
+  })
 }
 
 function getOrCreateFolder(name: string): number {

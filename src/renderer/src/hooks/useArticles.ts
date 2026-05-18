@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 export interface Article {
   id: number
@@ -8,6 +8,7 @@ export interface Article {
   author: string | null
   content: string | null
   summary: string | null
+  guid?: string
   read: boolean
   starred: boolean
   published_at: string | null
@@ -21,11 +22,13 @@ interface Props {
   feedId: number | null
   filter: string | null
   folderId?: number
+  searchQuery?: string
 }
 
-export function useArticles({ feedId, filter, folderId }: Props) {
+export function useArticles({ feedId, filter, folderId, searchQuery }: Props) {
   const [articles, setArticles] = useState<Article[]>([])
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+  const loadingContentRef = useRef<number | null>(null)
 
   const loadArticles = useCallback(async () => {
     const options: Record<string, unknown> = { limit: 200 }
@@ -34,10 +37,11 @@ export function useArticles({ feedId, filter, folderId }: Props) {
     if (folderId) options.folderId = folderId
     if (filter === 'unread') options.unreadOnly = true
     if (filter === 'starred') options.starredOnly = true
+    if (searchQuery) options.search = searchQuery
 
     const result = await window.api.articles.list(fid || undefined, options)
     setArticles(result.articles)
-  }, [feedId, filter, folderId])
+  }, [feedId, filter, folderId, searchQuery])
 
   useEffect(() => {
     loadArticles()
@@ -52,6 +56,22 @@ export function useArticles({ feedId, filter, folderId }: Props) {
       setArticles(prev => prev.map(a => a.id === id ? { ...a, read, starred } : a))
       setSelectedArticle(prev => prev?.id === id ? { ...prev, read, starred } : prev)
     })
+  }, [])
+
+  const selectArticle = useCallback(async (article: Article) => {
+    if (article.content !== undefined && article.content !== null) {
+      setSelectedArticle(article)
+      return
+    }
+
+    setSelectedArticle(article)
+
+    loadingContentRef.current = article.id
+    const full = await window.api.articles.get(article.id) as Article | undefined
+    if (full && loadingContentRef.current === article.id) {
+      setSelectedArticle(prev => prev?.id === article.id ? { ...prev, content: full.content } : prev)
+      loadingContentRef.current = null
+    }
   }, [])
 
   const markRead = useCallback(async (id: number, read?: boolean) => {
@@ -70,5 +90,5 @@ export function useArticles({ feedId, filter, folderId }: Props) {
     })
   }, [])
 
-  return { articles, selectedArticle, setSelectedArticle, markRead, markStarred, markAllRead }
+  return { articles, selectedArticle, setSelectedArticle: selectArticle, markRead, markStarred, markAllRead }
 }

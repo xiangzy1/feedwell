@@ -19,13 +19,26 @@ export interface FetchResult {
 export async function fetchFeed(feedId: number, feedUrl: string): Promise<FetchResult> {
   const start = Date.now()
   try {
-    const { articles, meta } = await parseFeed(feedUrl)
+    let feed: { last_etag: string | null; last_modified: string | null; favicon_url: string | null; site_url: string | null } | undefined
+    if (feedId > 0) {
+      feed = getDb().prepare('SELECT last_etag, last_modified, favicon_url, site_url FROM feeds WHERE id = ?').get(feedId) as typeof feed
+    }
+
+    const result = await parseFeed(feedUrl, { etag: feed?.last_etag, lastModified: feed?.last_modified })
     const responseTime = Date.now() - start
 
+    if (result.notModified) {
+      if (feedId > 0) {
+        getDb().prepare("UPDATE feeds SET last_fetched_at = datetime('now') WHERE id = ?").run(feedId)
+        logFetch(feedId, 'success', null, 0, responseTime)
+      }
+      return { status: 'success', articlesCount: 0, responseTime }
+    }
+
+    const { articles, meta, responseHeaders } = result
     let articlesCount = 0
     if (feedId > 0) {
       articlesCount = saveArticles(feedId, articles)
-      const feed = getDb().prepare('SELECT favicon_url, site_url FROM feeds WHERE id = ?').get(feedId) as { favicon_url: string | null; site_url: string | null } | undefined
 
       const rawFavicon = meta.favicon || (meta.image && meta.image.url) || null
       let faviconUrl: string | null = rawFavicon && /^https?:\/\//.test(rawFavicon) ? rawFavicon : null
@@ -39,7 +52,6 @@ export async function fetchFeed(feedId: number, feedUrl: string): Promise<FetchR
         faviconCached = await downloadAndCacheIcon(feed.favicon_url, feedId)
       }
 
-      // If still no cached icon, try homepage discovery
       if (!faviconCached) {
         const siteUrl = meta.link || feed?.site_url
         if (siteUrl) {
@@ -50,16 +62,12 @@ export async function fetchFeed(feedId: number, feedUrl: string): Promise<FetchR
         }
       }
 
-      // Clear bad favicon_url if we got a new one from discovery
-      if (faviconCached && faviconUrl && faviconUrl !== feed?.favicon_url) {
-        getDb().prepare(
-          "UPDATE feeds SET title = ?, site_url = COALESCE(?, site_url), favicon_url = ?, favicon_cached = ?, last_fetched_at = datetime('now') WHERE id = ?"
-        ).run(meta.title || '', meta.link || '', faviconUrl, faviconCached, feedId)
-      } else {
-        getDb().prepare(
-          "UPDATE feeds SET title = ?, site_url = COALESCE(?, site_url), favicon_url = COALESCE(?, favicon_url), favicon_cached = COALESCE(?, favicon_cached), last_fetched_at = datetime('now') WHERE id = ?"
-        ).run(meta.title || '', meta.link || '', faviconUrl, faviconCached, feedId)
-      }
+      const newEtag = responseHeaders?.etag ?? null
+      const newLastModified = responseHeaders?.['last-modified'] ?? null
+
+      getDb().prepare(
+        "UPDATE feeds SET title = ?, site_url = COALESCE(?, site_url), favicon_url = COALESCE(?, favicon_url), favicon_cached = COALESCE(?, favicon_cached), last_etag = ?, last_modified = ?, last_fetched_at = datetime('now') WHERE id = ?"
+      ).run(meta.title || '', meta.link || '', faviconUrl, faviconCached, newEtag, newLastModified, feedId)
       logFetch(feedId, 'success', null, articlesCount, responseTime)
     }
     return { status: 'success', articlesCount, responseTime, feedTitle: meta.title, feedSiteUrl: meta.link }
@@ -74,29 +82,66 @@ export async function fetchFeed(feedId: number, feedUrl: string): Promise<FetchR
 export async function discoverFeed(url: string): Promise<{ feedUrl: string; title?: string } | null> {
   try {
     const html = await httpGet(url)
-    const match = html.match(/<link[^>]+type=["'](application\/rss\+xml|application\/atom\+xml)["'][^>]+href=["']([^"']+)["'][^>]*>/i)
-      || html.match(/<link[^>]+href=["']([^"']+)["'][^>]+type=["'](application\/rss\+xml|application\/atom\+xml)["'][^>]*>/i)
-    if (match) {
-      let feedUrl = match[2] || match[1]
-      if (feedUrl.startsWith('/')) {
-        const parsed = parseUrl(url)
-        feedUrl = `${parsed.protocol}//${parsed.host}${feedUrl}`
-      } else if (!feedUrl.startsWith('http')) {
-        feedUrl = new URL(feedUrl, url).href
+
+    const feedTypes = new Set([
+      'application/rss+xml',
+      'application/atom+xml',
+      'application/json',
+      'application/feed+json',
+      'text/xml',
+      'application/xml',
+    ])
+
+    const linkRegex = /<link\s[^>]*>/gi
+    let bestMatch: { feedUrl: string; title?: string } | null = null
+    let linkMatch: RegExpExecArray | null
+
+    while ((linkMatch = linkRegex.exec(html)) !== null) {
+      const tag = linkMatch[0]
+      const rel = tag.match(/rel=["']([^"']+)["']/i)?.[1]
+      if (!rel || !/\balternate\b/i.test(rel)) continue
+
+      const type = tag.match(/type=["']([^"']+)["']/i)?.[1]?.toLowerCase()
+      if (!type || !feedTypes.has(type)) continue
+
+      const href = tag.match(/href=["']([^"']+)["']/i)?.[1]
+      if (!href) continue
+
+      const title = tag.match(/title=["']([^"']+)["']/i)?.[1]
+      const resolvedUrl = resolveUrl(href, url)
+      if (resolvedUrl) {
+        bestMatch = { feedUrl: resolvedUrl, title }
+        break
       }
-      return { feedUrl }
     }
-    return null
+
+    return bestMatch
   } catch {
     return null
   }
 }
 
-function parseFeed(feedUrl: string): Promise<{ articles: FeedParser.Item[]; meta: FeedParser.Meta }> {
+function resolveUrl(href: string, baseUrl: string): string | null {
+  try {
+    if (href.startsWith('http')) return href
+    return new URL(href, baseUrl).href
+  } catch {
+    return null
+  }
+}
+
+function parseFeed(feedUrl: string, conditionalHeaders?: { etag?: string | null; lastModified?: string | null }): Promise<
+  { notModified: true } |
+  { notModified: false; articles: FeedParser.Item[]; meta: FeedParser.Meta; responseHeaders: Record<string, string | string[] | undefined> }
+> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error('Request timeout'))
     }, 15000)
+
+    const extraHeaders: Record<string, string> = {}
+    if (conditionalHeaders?.etag) extraHeaders['If-None-Match'] = conditionalHeaders.etag
+    if (conditionalHeaders?.lastModified) extraHeaders['If-Modified-Since'] = conditionalHeaders.lastModified
 
     httpGetRaw(feedUrl, (err, res) => {
       if (err) {
@@ -104,16 +149,22 @@ function parseFeed(feedUrl: string): Promise<{ articles: FeedParser.Item[]; meta
         return reject(err)
       }
 
+      if (res.statusCode === 304) {
+        clearTimeout(timeout)
+        res.resume()
+        resolve({ notModified: true })
+        return
+      }
+
+      const responseHeaders = res.headers as Record<string, string | string[] | undefined>
       const feedparser = new FeedParser({})
       const articles: FeedParser.Item[] = []
       let meta: any
 
-      // Fix wrong Content-Type (some servers serve feeds as text/html)
       if (res.headers['content-type']?.includes('text/html')) {
         res.headers['content-type'] = 'application/xml; charset=UTF-8'
       }
 
-      // Handle gzip-compressed responses even when not requested
       const isGzip = res.headers['content-encoding'] === 'gzip'
       if (isGzip) {
         res.pipe(createGunzip()).pipe(feedparser)
@@ -138,9 +189,9 @@ function parseFeed(feedUrl: string): Promise<{ articles: FeedParser.Item[]; meta
           reject(new Error('Failed to parse feed'))
           return
         }
-        resolve({ articles, meta })
+        resolve({ notModified: false, articles, meta, responseHeaders })
       })
-    })
+    }, 5, feedUrl, extraHeaders)
   })
 }
 
@@ -166,7 +217,7 @@ function saveArticles(feedId: number, articles: FeedParser.Item[]): number {
   return count
 }
 
-function logFetch(feedId: number, status: string, errorMsg: string | null, articlesCount: number, responseTime: number): void {
+function logFetch(feedId: number, status: 'success' | 'error', errorMsg: string | null, articlesCount: number, responseTime: number): void {
   getDb().prepare(
     "INSERT INTO fetch_logs (feed_id, status, error_msg, articles_count, response_time) VALUES (?, ?, ?, ?, ?)"
   ).run(feedId, status, errorMsg, articlesCount, responseTime)
@@ -184,7 +235,7 @@ function httpGet(url: string): Promise<string> {
   })
 }
 
-function httpGetRaw(url: string, callback: (err: Error | null, res: any) => void, maxRedirects = 5, originUrl = url): void {
+function httpGetRaw(url: string, callback: (err: Error | null, res: any) => void, maxRedirects = 5, originUrl = url, extraHeaders?: Record<string, string>): void {
   const parsedUrl = new URL(url)
   const isHttps = parsedUrl.protocol === 'https:'
   const reqFn = isHttps ? httpsRequest : request
@@ -192,7 +243,7 @@ function httpGetRaw(url: string, callback: (err: Error | null, res: any) => void
     hostname: parsedUrl.hostname,
     port: parsedUrl.port || (isHttps ? 443 : 80),
     path: parsedUrl.pathname + parsedUrl.search,
-    headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*' }
+    headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*', ...extraHeaders }
   }
   const req = reqFn(options, (res: any) => {
     if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
@@ -206,7 +257,7 @@ function httpGetRaw(url: string, callback: (err: Error | null, res: any) => void
         redirectUrl = new URL(redirectUrl, url).href
       }
       res.resume() // drain the response body
-      return httpGetRaw(redirectUrl, callback, maxRedirects - 1, originUrl)
+      return httpGetRaw(redirectUrl, callback, maxRedirects - 1, originUrl, extraHeaders)
     }
     callback(null, res)
   })

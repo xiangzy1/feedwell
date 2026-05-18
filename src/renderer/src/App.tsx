@@ -6,6 +6,7 @@ import AddFeedDialog from './components/Sidebar/AddFeedDialog'
 import SettingsDialog from './components/Settings/SettingsDialog'
 import StatsDialog from './components/Stats/StatsDialog'
 import ResizeHandle from './components/ResizeHandle'
+import ErrorBoundary from './components/ErrorBoundary'
 import { useArticles } from './hooks/useArticles'
 import { useFeeds } from './hooks/useFeeds'
 import { usePersistedWidth } from './hooks/usePersistedWidth'
@@ -74,6 +75,12 @@ export default function App() {
     window.api.settings.set(SORT_STORAGE_KEY, order)
   }, [])
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 250)
+    return () => clearTimeout(t)
+  }, [searchQuery])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true')
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed(prev => {
@@ -92,7 +99,8 @@ export default function App() {
   const { articles, selectedArticle, setSelectedArticle, markRead, markStarred, markAllRead } = useArticles({
     feedId: selectedFeedId,
     filter: selectedFilter,
-    folderId: selectedFolderId ?? undefined
+    folderId: selectedFolderId ?? undefined,
+    searchQuery: debouncedSearch
   })
   const unreadCount = useMemo(() => feeds.reduce((sum, f) => sum + f.unread_count, 0), [feeds])
 
@@ -167,6 +175,7 @@ export default function App() {
       <RefreshSettingsProvider value={refreshCtx}>
       <UpdateSettingsProvider value={updateCtx}>
       <CacheSettingsProvider value={cacheCtx}>
+      <ErrorBoundary name="Feedwell">
       <div className="app">
         <button className="sidebar-toggle" onClick={toggleSidebar}>
           {sidebarCollapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
@@ -199,18 +208,24 @@ export default function App() {
           filter={selectedFilter}
           sortOrder={sortOrder}
           onSortOrderChange={handleSortOrderChange}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          scrollKey={selectedFeedId ?? selectedFolderId ?? selectedFilter}
         />
         <ResizeHandle onResize={handleListResize} />
-        <ArticleView
-          article={selectedArticle}
-          onToggleStar={markStarred}
-          onToggleRead={markRead}
-          feeds={feeds}
-        />
+        <ErrorBoundary name="Article View">
+          <ArticleView
+            article={selectedArticle}
+            onToggleStar={markStarred}
+            onToggleRead={markRead}
+            feeds={feeds}
+          />
+        </ErrorBoundary>
         <AddFeedDialog open={showAddFeed} onAdd={handleAddFeed} onClose={() => setShowAddFeed(false)} />
         <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} initialTab={settingsTab} />
         <StatsDialog open={showStats} onClose={() => setShowStats(false)} onSelectFeed={(id) => { setSelectedFeedId(id); setSelectedFilter(null) }} />
       </div>
+      </ErrorBoundary>
       </CacheSettingsProvider>
       </UpdateSettingsProvider>
       </RefreshSettingsProvider>

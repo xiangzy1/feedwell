@@ -3,7 +3,7 @@ import { getDb } from '../db'
 import { notifyArticleStateChanged, notifyAllRead } from './feeds'
 
 export function registerArticleIpc(): void {
-  ipcMain.handle('articles:list', (_event, feedId?: number, options?: { unreadOnly?: boolean; starredOnly?: boolean; folderId?: number; limit?: number; offset?: number }) => {
+  ipcMain.handle('articles:list', (_event, feedId?: number, options?: { unreadOnly?: boolean; starredOnly?: boolean; folderId?: number; limit?: number; offset?: number; search?: string }) => {
     const conditions: string[] = []
     const params: unknown[] = []
 
@@ -21,22 +21,32 @@ export function registerArticleIpc(): void {
     if (options?.starredOnly) {
       conditions.push('a.starred = 1')
     }
+    if (options?.search) {
+      conditions.push('a.title LIKE ?')
+      params.push(`%${options.search}%`)
+    }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     const limit = options?.limit || 100
     const offset = options?.offset || 0
-    const needsJoin = !!feedId || !!options?.folderId
 
     const articles = getDb().prepare(
-      `SELECT a.*, f.title as feed_title, f.favicon_url, f.favicon_cached FROM articles a JOIN feeds f ON f.id = a.feed_id ${where} ORDER BY a.published_at DESC, a.fetched_at DESC LIMIT ? OFFSET ?`
+      `SELECT a.id, a.feed_id, a.title, a.url, a.author, a.summary, a.guid, a.read, a.starred, a.published_at, a.fetched_at, f.title as feed_title, f.favicon_url, f.favicon_cached FROM articles a JOIN feeds f ON f.id = a.feed_id ${where} ORDER BY a.published_at DESC, a.fetched_at DESC LIMIT ? OFFSET ?`
     ).all(...params, limit, offset)
 
+    const needsJoin = !!feedId || !!options?.folderId
     const countFrom = needsJoin ? 'articles a JOIN feeds f ON f.id = a.feed_id' : 'articles a'
     const countResult = getDb().prepare(
       `SELECT COUNT(*) as total FROM ${countFrom} ${where}`
     ).get(...params) as { total: number }
 
     return { articles, total: countResult.total }
+  })
+
+  ipcMain.handle('articles:get', (_event, id: number) => {
+    return getDb().prepare(
+      'SELECT id, feed_id, title, url, author, content, summary, guid, read, starred, published_at, fetched_at FROM articles WHERE id = ?'
+    ).get(id)
   })
 
   ipcMain.handle('articles:markRead', (_event, id: number, read?: boolean) => {

@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { Circle, CircleDot, ArrowUpDown, Check } from 'lucide-react'
+import { Circle, CircleDot, ArrowUpDown, Check, Search, X } from 'lucide-react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ArticleRow from './ArticleRow'
 import { Article } from '../../hooks/useArticles'
@@ -15,24 +15,28 @@ interface Props {
   filter: string | null
   sortOrder: SortOrder
   onSortOrderChange: (order: SortOrder) => void
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  scrollKey?: string | number
 }
 
-export default function ArticleList({ sortedArticles, selectedId, onSelect, onMarkAllRead, filter, sortOrder, onSortOrderChange }: Props) {
+export default function ArticleList({ sortedArticles, selectedId, onSelect, onMarkAllRead, filter, sortOrder, onSortOrderChange, searchQuery, onSearchChange, scrollKey }: Props) {
   const [unreadOnly, setUnreadOnly] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
   const [unreadSnapshot, setUnreadSnapshot] = useState<Set<number>>(new Set())
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const prevIdKey = useRef<string>('')
 
-  // Recalculate snapshot when articles are structurally replaced (folder/feed change),
-  // but NOT when only read status changes in-place
+  const idKey = useMemo(() => sortedArticles.map(a => a.id).sort((a, b) => a - b).join(','), [sortedArticles])
+
   useEffect(() => {
     if (!unreadOnly) return
-    const idKey = sortedArticles.map(a => a.id).sort((a, b) => a - b).join(',')
     if (idKey !== prevIdKey.current) {
       prevIdKey.current = idKey
       setUnreadSnapshot(new Set(sortedArticles.filter(a => !a.read).map(a => a.id)))
     }
-  }, [sortedArticles, unreadOnly])
+  }, [idKey, sortedArticles, unreadOnly])
 
   const toggleUnreadOnly = useCallback(() => {
     setUnreadOnly(prev => {
@@ -40,11 +44,11 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
       if (next) {
         const snapshot = new Set(sortedArticles.filter(a => !a.read).map(a => a.id))
         setUnreadSnapshot(snapshot)
-        prevIdKey.current = sortedArticles.map(a => a.id).sort((a, b) => a - b).join(',')
+        prevIdKey.current = idKey
       }
       return next
     })
-  }, [sortedArticles])
+  }, [sortedArticles, idKey])
 
   const sorted = useMemo(() => {
     return unreadOnly ? sortedArticles.filter(a => unreadSnapshot.has(a.id)) : sortedArticles
@@ -52,20 +56,49 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
 
   const hasUnread = sortedArticles.some(a => !a.read)
 
+  const toggleSearch = useCallback(() => {
+    setSearchOpen(prev => {
+      if (prev) {
+        onSearchChange('')
+      } else {
+        setTimeout(() => searchRef.current?.focus(), 0)
+      }
+      return !prev
+    })
+  }, [onSearchChange])
+
+  useEffect(() => {
+    if (!virtuosoRef.current) return
+    virtuosoRef.current.scrollToIndex({ index: 0, behavior: 'instant' })
+  }, [scrollKey])
+
   useEffect(() => {
     if (selectedId == null || !virtuosoRef.current) return
     const idx = sorted.findIndex(a => a.id === selectedId)
     if (idx >= 0) {
       virtuosoRef.current.scrollIntoView({ index: idx, behavior: 'smooth', align: 'nearest' } as any)
     }
-    // Only scroll on explicit selection, not when sorted list changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId])
 
   return (
     <div className="article-list-col">
       <div className="article-list-toolbar">
-        {!filter && (
+        {searchOpen && (
+          <div className="article-search">
+            <Search size={13} />
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              placeholder="Search articles..."
+              onKeyDown={e => { if (e.key === 'Escape') toggleSearch() }}
+            />
+            <button className="toolbar-btn-icon" onClick={toggleSearch}><X size={13} /></button>
+          </div>
+        )}
+        {!searchOpen && !filter && (
           <button
             className={`toolbar-btn ${unreadOnly ? 'active' : ''}`}
             onClick={toggleUnreadOnly}
@@ -84,6 +117,11 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
         {hasUnread && (
           <button className="toolbar-btn" onClick={onMarkAllRead} title="Mark all as read">
             <><Check size={13} /> All read</>
+          </button>
+        )}
+        {!searchOpen && (
+          <button className={`toolbar-btn ${searchQuery ? 'active' : ''}`} onClick={toggleSearch} title="Search articles">
+            <Search size={13} />
           </button>
         )}
       </div>

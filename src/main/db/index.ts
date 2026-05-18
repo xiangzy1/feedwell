@@ -5,7 +5,7 @@ import { copyFileSync } from 'fs'
 
 let db: Database.Database
 
-const SCHEMA_VERSION = 4
+const SCHEMA_VERSION = 5
 
 const MIGRATIONS = [
   `CREATE TABLE IF NOT EXISTS folders (
@@ -107,6 +107,22 @@ function runMigrations(): void {
         created_at  TEXT DEFAULT (datetime('now')),
         UNIQUE(article_id, target_lang)
       )`)
+    }
+
+    if (!row || row.version < 5) {
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_articles_feed_published ON articles(feed_id, published_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_articles_read_published ON articles(read, published_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_articles_starred_published ON articles(starred, published_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_fetch_logs_fetched_at ON fetch_logs(fetched_at);
+        CREATE INDEX IF NOT EXISTS idx_translations_lookup ON translations(article_id, target_lang, source_hash);
+      `)
+      try {
+        db.exec('ALTER TABLE feeds ADD COLUMN last_etag TEXT DEFAULT NULL')
+      } catch { /* column already exists */ }
+      try {
+        db.exec('ALTER TABLE feeds ADD COLUMN last_modified TEXT DEFAULT NULL')
+      } catch { /* column already exists */ }
     }
 
     db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(SCHEMA_VERSION)
