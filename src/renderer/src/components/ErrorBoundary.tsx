@@ -49,7 +49,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             borderRadius: '6px',
             background: 'var(--bg-primary)',
             color: 'var(--text-primary)',
-            cursor: 'pointer',
+            cursor: 'default',
             fontSize: '0.9rem',
           }}
         >

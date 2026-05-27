@@ -28,7 +28,6 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  cursor: pointer;
   border-radius: 4px;
 }
 
@@ -69,7 +68,6 @@
   align-items: center;
   padding: 6px 10px;
   border-radius: 4px;
-  cursor: pointer;
   gap: 6px;
 }
 
@@ -124,7 +122,6 @@
 .sidebar-item-action {
   border: none;
   background: none;
-  cursor: pointer;
   font-size: 12px;
   opacity: 0.3;
   color: var(--text-secondary);
@@ -145,7 +142,6 @@
   background: none;
   padding: 8px 4px;
   border-radius: 4px;
-  cursor: pointer;
   font-size: 18px;
   color: var(--text-secondary);
 }
@@ -185,12 +181,13 @@
   border-radius: 6px;
   padding: 4px 0;
   min-width: 180px;
-  box-shadow: 0 4px 16px var(--shadow-color);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.06);
 }
 .context-menu-item {
   padding: 8px 14px;
   font-size: 13px;
-  cursor: pointer;
   white-space: nowrap;
 }
 .context-menu-item:hover { background: var(--accent); color: white; }

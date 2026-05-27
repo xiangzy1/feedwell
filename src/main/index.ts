@@ -289,21 +289,16 @@ function saveWindowBounds(win: BrowserWindow) {
   setSetting('windowBounds', { width, height, x, y })
 }
 
-function loadThemeColor(): string {
-  const theme = getSettingJson<string>('theme')
-  const dark = theme === 'dark' || (theme !== 'light' && nativeTheme.shouldUseDarkColors)
-  return dark ? '#252525' : '#ffffff'
-}
-
 function createMainWindow() {
   const bounds = loadWindowBounds()
   const win = new BrowserWindow({
     width: bounds?.width ?? 1200,
     height: bounds?.height ?? 800,
     ...(bounds?.x != null && bounds?.y != null ? { x: bounds.x, y: bounds.y } : {}),
-    backgroundColor: loadThemeColor(),
+    backgroundColor: '#00000000',
     show: false,
     titleBarStyle: 'hiddenInset',
+    vibrancy: 'sidebar',
     icon: iconPath,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

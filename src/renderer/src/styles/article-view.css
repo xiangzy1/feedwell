@@ -25,7 +25,6 @@
 .article-view-titlebar-actions button {
   border: none;
   background: none;
-  cursor: pointer;
   font-size: 13px;
   padding: 4px 8px;
   border-radius: 4px;
@@ -33,7 +32,7 @@
 }
 
 .article-view-titlebar-actions button:hover:not(:disabled) { background: var(--bg-secondary); }
-.article-view-titlebar-actions button:disabled { opacity: 0.3; cursor: default; }
+.article-view-titlebar-actions button:disabled { opacity: 0.3; }
 .article-view-titlebar-actions .titlebar-btn-active { color: var(--accent); }
 
 .article-view.empty {
@@ -76,7 +75,6 @@
 .article-actions button {
   border: none;
   background: none;
-  cursor: pointer;
   font-size: 14px;
   padding: 4px 8px;
   border-radius: 4px;
@@ -111,7 +109,6 @@
 .webview-scrollbar-track {
   width: 14px;
   flex-shrink: 0;
-  cursor: pointer;
   position: relative;
 }
 
@@ -121,7 +118,6 @@
   right: 3px;
   border-radius: 4px;
   background: rgba(128, 128, 128, 0.35);
-  cursor: grab;
   transition: background 0.15s;
 }
 
@@ -191,7 +187,6 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   background: var(--bg-surface);
-  cursor: pointer;
   color: var(--text-primary);
 }
 
@@ -207,6 +202,7 @@
   line-height: var(--article-line-height);
   font-size: var(--article-font-size);
   overflow-wrap: break-word;
+  user-select: text;
 }
 
 .article-content p + p { margin-top: var(--article-paragraph-gap); }
@@ -317,7 +313,7 @@
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--bg-surface);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   font-size: 0.98em;
   line-height: 1.6;
   color: var(--text-secondary);
@@ -333,7 +329,7 @@
   border-color: rgba(211, 47, 47, 0.3);
 }
 [data-theme="dark"] .article-summary-popup {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
 }
 .article-summary-popup.streaming::after {
   content: ' \25CE';

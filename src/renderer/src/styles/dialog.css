@@ -22,9 +22,11 @@
 
 .dialog {
   background: var(--bg-surface);
-  border-radius: 10px;
+  border-radius: 8px;
   width: 380px;
-  box-shadow: 0 8px 32px var(--shadow-color);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.06);
 
   opacity: 0;
   transform: scale(0.97) translateY(4px);
@@ -66,7 +68,6 @@
   background: none;
   border: none;
   color: var(--text-secondary);
-  cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
 }
@@ -106,7 +107,6 @@
 select.dialog-input {
   appearance: none;
   background: var(--bg-surface);
-  cursor: pointer;
 }
 
 /* ===== Option Groups ===== */
@@ -122,7 +122,6 @@ select.dialog-input {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  cursor: pointer;
 }
 
 .dialog-column {
@@ -160,7 +159,6 @@ select.dialog-input {
   border-radius: 4px;
   border: none;
   font-size: 13px;
-  cursor: pointer;
 }
 .btn-primary { background: var(--accent); color: white; }
 .btn-primary:disabled { opacity: 0.5; }
@@ -174,12 +172,11 @@ select.dialog-input {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background: var(--bg-surface);
-  cursor: pointer;
   color: var(--text-primary);
 }
 
 .dialog-test-btn:hover { background: var(--bg-secondary); }
-.dialog-test-btn:disabled { opacity: 0.5; cursor: default; }
+.dialog-test-btn:disabled { opacity: 0.5; }
 
 .dialog-feedback { margin-left: 8px; font-size: 12px; }
 .dialog-feedback.success { color: #2e7d32; }

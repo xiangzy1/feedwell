@@ -209,7 +209,7 @@ const initialWebviewState: WebviewState = {
 }
 
 function getArticleWebviewPartition(feedId: number) {
-  return `article-webview-feed-${feedId}`
+  return `persist:article-webview-feed-${feedId}`
 }
 
 function closeWebviewRequests(el: Electron.WebviewTag) {
@@ -357,6 +357,7 @@ function WebviewView({ url, feedId, webviewMaxWidth, articleId, translationEnabl
       partition={webviewPartition}
       className="article-webview"
       allowpopups=""
+      plugins=""
     />
   )
   /* eslint-enable react/no-unknown-property */
@@ -372,7 +373,6 @@ function WebviewView({ url, feedId, webviewMaxWidth, articleId, translationEnabl
       {wv.loading && (
         <div className="webview-overlay webview-loading">
           <div className="webview-spinner" />
-          <p>Loading…</p>
         </div>
       )}
       {wv.error && (

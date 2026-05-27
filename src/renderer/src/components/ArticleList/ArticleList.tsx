@@ -76,7 +76,7 @@ export default function ArticleList({ sortedArticles, selectedId, onSelect, onMa
     if (selectedId == null || !virtuosoRef.current) return
     const idx = sorted.findIndex(a => a.id === selectedId)
     if (idx >= 0) {
-      virtuosoRef.current.scrollIntoView({ index: idx, behavior: 'smooth', align: 'nearest' } as any)
+      virtuosoRef.current.scrollIntoView({ index: idx, behavior: 'instant', align: 'nearest' } as any)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId])

@@ -58,7 +58,12 @@ export function useArticles({ feedId, filter, folderId, searchQuery }: Props) {
     })
   }, [])
 
-  const selectArticle = useCallback(async (article: Article) => {
+  const selectArticle = useCallback(async (article: Article | null) => {
+    if (!article) {
+      setSelectedArticle(null)
+      return
+    }
+
     if (article.content !== undefined && article.content !== null) {
       setSelectedArticle(article)
       return

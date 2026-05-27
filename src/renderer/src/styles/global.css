@@ -66,6 +66,7 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
   -webkit-app-region: drag;
   overflow: hidden;
   position: relative;
+  user-select: none;
 }
 
 .sidebar {
@@ -132,7 +133,6 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
   z-index: 10;
   border: none;
   background: none;
-  cursor: pointer;
   font-size: 13px;
   padding: 4px 6px;
   border-radius: 4px;
@@ -161,4 +161,18 @@ blockquote {
   background: var(--bg-secondary);
   color: var(--text-secondary);
   border-radius: 0 4px 4px 0;
+}
+
+/* Reduced motion: suppress all transitions and animations */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+button {
+  outline: none;
 }
