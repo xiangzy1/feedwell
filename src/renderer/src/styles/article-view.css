@@ -375,10 +375,24 @@
   margin-left: 0.4em;
 }
 
-/* Table cell translations */
 .translation-td,
 .translation-th {
   margin-top: 0;
   margin-bottom: 0;
   font-size: 0.88em;
 }
+
+/* PDF image rendering styles */
+.pdf-image-container {
+  display: flex;
+  justify-content: center;
+  margin: 1.5em 0;
+}
+
+.pdf-image-container img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+

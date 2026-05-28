@@ -88,6 +88,7 @@ body { font-family: var(--font-system); color: var(--text-primary); background: 
 .article-list-col {
   width: var(--list-width);
   flex-shrink: 0;
+  background: var(--bg-primary);
   border-right: 1px solid var(--border-color);
   -webkit-app-region: no-drag;
   display: flex;

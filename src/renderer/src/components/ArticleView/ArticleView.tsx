@@ -70,6 +70,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     processMermaidInHtml(sanitized, isDark).then(html => {
       if (!contentRef.current) return
       contentRef.current.innerHTML = html
+      removeLeadingDuplicateTitle(contentRef.current, article.title)
       contentRef.current.querySelectorAll('pre code:not(.hljs)').forEach((block) => {
         hljs.highlightElement(block as HTMLElement)
       })
@@ -113,6 +114,7 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     if (!raw) { el.innerHTML = ''; return }
     const sanitized = DOMPurify.sanitize(raw)
     el.innerHTML = sanitized
+    removeLeadingDuplicateTitle(el, article.title)
     el.querySelectorAll('pre code:not(.hljs)').forEach((block) => {
       hljs.highlightElement(block as HTMLElement)
     })
@@ -241,6 +243,19 @@ async function processMermaidInHtml(html: string, isDark: boolean): Promise<stri
   }
 
   return result
+}
+
+function removeLeadingDuplicateTitle(container: HTMLElement, title: string | undefined) {
+  if (!title) return
+  const first = container.firstElementChild as HTMLElement | null
+  if (!first) return
+  if (!/^H[1-6]$/.test(first.tagName)) return
+  const norm = (s: string) => s.normalize('NFKC').replace(/[\s ​-‍﻿]+/g, ' ').trim().toLowerCase()
+  const headingText = norm(first.innerText ?? first.textContent ?? '')
+  const titleText = norm(title)
+  if (!headingText) return
+  if (!titleText.includes(headingText) && !headingText.includes(titleText)) return
+  first.remove()
 }
 
 function decodeHtmlEntities(str: string): string {
