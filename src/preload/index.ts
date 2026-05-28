@@ -88,6 +88,9 @@ const api = {
     clearAll: () => ipcRenderer.invoke('cache:clearAll'),
     cleanup: () => ipcRenderer.invoke('cache:cleanup'),
   },
+  pdf: {
+    extractText: (url: string) => ipcRenderer.invoke('pdf:extractText', url)
+  },
   setCurrentArticle: (feedId: number | null, articleId: number | null) => ipcRenderer.invoke('app:setCurrentArticle', feedId, articleId),
   closeArticleWebview: (webContentsId: number | null, partition: string | null, closeConnections: boolean) =>
     ipcRenderer.invoke('app:closeArticleWebview', webContentsId, partition, closeConnections),

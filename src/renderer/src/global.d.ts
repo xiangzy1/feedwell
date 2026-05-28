@@ -77,6 +77,9 @@ declare global {
         clearAll: () => Promise<CacheSizes>
         cleanup: () => Promise<void>
       }
+      pdf: {
+        extractText: (url: string) => Promise<{ title: string | null; html: string; pages: number }>
+      }
       setCurrentArticle: (feedId: number | null, articleId: number | null) => Promise<void>
       closeArticleWebview: (webContentsId: number | null, partition: string | null, closeConnections: boolean) => Promise<void>
       isColdStart: () => Promise<boolean>

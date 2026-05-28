@@ -13,6 +13,7 @@ import { registerTranslationIpc } from './ipc/translation'
 import { registerSummaryIpc } from './ipc/summary'
 import { registerUpdaterIpc } from './ipc/updater'
 import { registerCacheIpc } from './ipc/cache'
+import { registerPdfIpc } from './ipc/pdf'
 import { performAutoCleanup, MB } from './services/cache'
 import { initUpdater } from './services/updater'
 import { ensureIconsDir, downloadAndCacheIcon, findCachedFile } from './services/favicon'
@@ -175,6 +176,7 @@ app.whenReady().then(() => {
   registerSummaryIpc()
   registerUpdaterIpc()
   registerCacheIpc()
+  registerPdfIpc()
   ipcMain.handle('app:isColdStart', () => isColdStart)
   createMainWindow()
   initUpdater()

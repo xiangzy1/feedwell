@@ -22,6 +22,8 @@ interface Props {
 export default function ArticleView({ article, onToggleStar, onToggleRead, feeds }: Props) {
   const feed = article ? feeds.find(f => f.id === article.feed_id) : undefined
   const useWebview = feed?.open_in_browser && article?.url
+  const isPdf = useWebview && /\.(pdf)(\?|$)/i.test(article.url!)
+  const [pdfState, setPdfState] = useState<{ loading: boolean; error: string | null; html: string | null }>({ loading: false, error: null, html: null })
   const contentRef = useRef<HTMLDivElement>(null)
   const [contentVersion, setContentVersion] = useState(0)
   const [translationEnabled, setTranslationEnabled] = useState(false)
@@ -30,15 +32,17 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
   const { isTranslating } = useTranslation(contentRef, article?.id, translationEnabled, contentVersion)
   const canSummarize = tSettings.provider === 'ai' && !!tSettings.aiApiKey
   const { summary, loading: summaryLoading, error: summaryError } = useSummary(
-    article?.id, article?.title, article?.content ?? undefined, summaryEnabled && !useWebview
+    article?.id, article?.title, article?.content ?? undefined, summaryEnabled && !useWebview && !isPdf
+  )
+  const { summary: pdfSummary, loading: pdfSummaryLoading, error: pdfSummaryError } = useSummary(
+    article?.id, article?.title, pdfState.html ?? undefined, summaryEnabled && isPdf && !!pdfState.html
   )
   const [wvSummaryState, setWvSummaryState] = useState<{ summary: string | null; loading: boolean; error: string | null }>({ summary: null, loading: false, error: null })
 
-  const summaryData = summaryEnabled
-    ? useWebview
-      ? wvSummaryState
-      : { loading: summaryLoading, summary, error: summaryError }
-    : null
+  const summaryData = !summaryEnabled ? null
+    : isPdf ? { loading: pdfSummaryLoading, summary: pdfSummary, error: pdfSummaryError }
+    : useWebview ? wvSummaryState
+    : { loading: summaryLoading, summary, error: summaryError }
   const summaryPopup = summaryData && (summaryData.loading || summaryData.summary || summaryData.error)
     ? <SummaryPopup {...summaryData} />
     : null
@@ -87,6 +91,34 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
     return () => el.removeEventListener('click', handler)
   }, [article?.id])
 
+  const loadPdf = useCallback(() => {
+    if (!article?.url) return
+    setPdfState({ loading: true, error: null, html: null })
+    window.api.pdf.extractText(article.url)
+      .then(result => setPdfState({ loading: false, error: null, html: result.html }))
+      .catch(err => setPdfState({ loading: false, error: err.message || 'Failed to load PDF', html: null }))
+  }, [article?.url])
+
+  useEffect(() => {
+    if (!isPdf) return
+    loadPdf()
+  }, [article?.id, isPdf, loadPdf])
+
+  // Inject PDF HTML into content ref
+  useEffect(() => {
+    if (!isPdf) return
+    const el = contentRef.current
+    if (!el) return
+    const raw = pdfState.html
+    if (!raw) { el.innerHTML = ''; return }
+    const sanitized = DOMPurify.sanitize(raw)
+    el.innerHTML = sanitized
+    el.querySelectorAll('pre code:not(.hljs)').forEach((block) => {
+      hljs.highlightElement(block as HTMLElement)
+    })
+    setContentVersion(k => k + 1)
+  }, [isPdf, pdfState.html])
+
   const titlebar = (
     <ArticleViewTitlebar
       article={article}
@@ -107,6 +139,35 @@ export default function ArticleView({ article, onToggleStar, onToggleRead, feeds
       <div className="article-view empty">
         {titlebar}
         <p>Select an article to read</p>
+      </div>
+    )
+  }
+
+  if (isPdf) {
+    return (
+      <div className="article-view webview-container">
+        {titlebar}
+        <ArticleHeader article={article} />
+        {pdfState.loading && (
+          <div className="webview-overlay webview-loading">
+            <div className="webview-spinner" />
+            <p>Loading PDF...</p>
+          </div>
+        )}
+        {pdfState.error && (
+          <div className="webview-overlay webview-error">
+            <div className="webview-error-icon">!</div>
+            <p className="webview-error-msg">Failed to load PDF</p>
+            <p className="webview-error-detail">{pdfState.error}</p>
+            <button className="webview-retry-btn" onClick={loadPdf}>Retry</button>
+          </div>
+        )}
+        <div
+          ref={contentRef}
+          className="article-content"
+          data-cv={contentVersion}
+        />
+        {summaryPopup}
       </div>
     )
   }
