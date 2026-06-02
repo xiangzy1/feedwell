@@ -250,7 +250,7 @@ function removeLeadingDuplicateTitle(container: HTMLElement, title: string | und
   const first = container.firstElementChild as HTMLElement | null
   if (!first) return
   if (!/^H[1-6]$/.test(first.tagName)) return
-  const norm = (s: string) => s.normalize('NFKC').replace(/[\s ​-‍﻿]+/g, ' ').trim().toLowerCase()
+  const norm = (s: string) => s.normalize('NFKC').replace(/[\s ​-‍﻿]+/g, '').trim().toLowerCase()
   const headingText = norm(first.innerText ?? first.textContent ?? '')
   const titleText = norm(title)
   if (!headingText) return

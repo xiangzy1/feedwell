@@ -31,7 +31,7 @@ export function registerArticleIpc(): void {
     const offset = options?.offset || 0
 
     const articles = getDb().prepare(
-      `SELECT a.id, a.feed_id, a.title, a.url, a.author, a.summary, a.guid, a.read, a.starred, a.published_at, a.fetched_at, f.title as feed_title, f.favicon_url, f.favicon_cached FROM articles a JOIN feeds f ON f.id = a.feed_id ${where} ORDER BY a.published_at DESC, a.fetched_at DESC LIMIT ? OFFSET ?`
+      `SELECT a.id, a.feed_id, a.title, a.url, a.author, a.summary, a.guid, a.read, a.starred, a.published_at, a.fetched_at, a.enclosure_url, a.enclosure_type, f.title as feed_title, f.favicon_url, f.favicon_cached FROM articles a JOIN feeds f ON f.id = a.feed_id ${where} ORDER BY a.published_at DESC, a.fetched_at DESC LIMIT ? OFFSET ?`
     ).all(...params, limit, offset)
 
     const needsJoin = !!feedId || !!options?.folderId
@@ -45,7 +45,7 @@ export function registerArticleIpc(): void {
 
   ipcMain.handle('articles:get', (_event, id: number) => {
     return getDb().prepare(
-      'SELECT id, feed_id, title, url, author, content, summary, guid, read, starred, published_at, fetched_at FROM articles WHERE id = ?'
+      'SELECT id, feed_id, title, url, author, content, summary, guid, read, starred, published_at, fetched_at, enclosure_url, enclosure_type FROM articles WHERE id = ?'
     ).get(id)
   })
 

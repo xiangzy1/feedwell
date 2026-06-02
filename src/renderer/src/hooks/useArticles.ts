@@ -13,6 +13,8 @@ export interface Article {
   starred: boolean
   published_at: string | null
   fetched_at: string
+  enclosure_url: string | null
+  enclosure_type: string | null
   feed_title: string
   favicon_url: string | null
   favicon_cached: string | null

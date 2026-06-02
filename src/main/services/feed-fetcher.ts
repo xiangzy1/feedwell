@@ -197,11 +197,12 @@ function parseFeed(feedUrl: string, conditionalHeaders?: { etag?: string | null;
 
 function saveArticles(feedId: number, articles: FeedParser.Item[]): number {
   const stmt = getDb().prepare(
-    `INSERT OR IGNORE INTO articles (feed_id, title, url, author, content, summary, guid, read, starred, published_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`
+    `INSERT OR IGNORE INTO articles (feed_id, title, url, author, content, summary, guid, read, starred, published_at, enclosure_url, enclosure_type)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`
   )
   let count = 0
   for (const article of articles) {
+    const enclosure = article.enclosures && article.enclosures.length > 0 ? article.enclosures[0] : null
     const info = stmt.run(
       feedId,
       article.title || 'Untitled',
@@ -210,7 +211,9 @@ function saveArticles(feedId: number, articles: FeedParser.Item[]): number {
       article.description || article.summary || null,
       article.summary || null,
       article.guid || article.link || article.title,
-      article.pubdate ? new Date(article.pubdate).toISOString() : null
+      article.pubdate ? new Date(article.pubdate).toISOString() : null,
+      enclosure?.url || null,
+      enclosure?.type || null
     )
     if (info.changes > 0) count++
   }

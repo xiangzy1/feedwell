@@ -5,7 +5,7 @@ import { copyFileSync } from 'fs'
 
 let db: Database.Database
 
-const SCHEMA_VERSION = 5
+const SCHEMA_VERSION = 6
 
 const MIGRATIONS = [
   `CREATE TABLE IF NOT EXISTS folders (
@@ -122,6 +122,15 @@ function runMigrations(): void {
       } catch { /* column already exists */ }
       try {
         db.exec('ALTER TABLE feeds ADD COLUMN last_modified TEXT DEFAULT NULL')
+      } catch { /* column already exists */ }
+    }
+
+    if (!row || row.version < 6) {
+      try {
+        db.exec('ALTER TABLE articles ADD COLUMN enclosure_url TEXT DEFAULT NULL')
+      } catch { /* column already exists */ }
+      try {
+        db.exec('ALTER TABLE articles ADD COLUMN enclosure_type TEXT DEFAULT NULL')
       } catch { /* column already exists */ }
     }
 
