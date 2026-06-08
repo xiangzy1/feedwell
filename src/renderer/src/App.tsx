@@ -215,6 +215,7 @@ export default function App() {
         <ResizeHandle onResize={handleListResize} />
         <ErrorBoundary name="Article View">
           <ArticleView
+            key={selectedArticle?.id ?? 'empty'}
             article={selectedArticle}
             onToggleStar={markStarred}
             onToggleRead={markRead}

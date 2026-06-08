@@ -40,8 +40,22 @@ export function useWebviewSummary(
     const doSummarize = async () => {
       let chunkCleanup: (() => void) | undefined
       try {
-        const rawText = await wv.executeJavaScript(EXTRACT_TEXT_JS)
-        if (requestIdRef.current !== requestId) return
+        let rawText = ''
+        // Retry a few times if the content is too short (e.g. page still loading dynamically)
+        for (let attempt = 0; attempt < 5; attempt++) {
+          rawText = await wv.executeJavaScript(EXTRACT_TEXT_JS)
+          if (requestIdRef.current !== requestId) return
+          if (rawText && rawText.trim().length > 100) {
+            break
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+          if (requestIdRef.current !== requestId) return
+        }
+
+        const trimmed = rawText.trim()
+        if (!trimmed) {
+          throw new Error('No content found on the page')
+        }
 
         chunkCleanup = window.api.summary.onSummaryChunk((data) => {
           if (requestIdRef.current !== requestId) return
