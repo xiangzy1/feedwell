@@ -1,6 +1,7 @@
 import { ipcMain, net } from 'electron'
+import 'geometry-interfaces'
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs'
-import sharp from 'sharp'
+import { PNG } from 'pngjs'
 
 const CJK_REGEX = /[一-龥⼀-⿟⺀-⻳぀-ヿ가-힯＀-￯]/
 const CJK_SPACING_RE = /([一-龥⼀-⿟⺀-⻳぀-ヿ가-힯＀-￯])\s+([一-龥⼀-⿟⺀-⻳぀-ヿ가-힯＀-￯])/g
@@ -120,7 +121,7 @@ async function fetchPageImage(page: any, imgId: string): Promise<any | null> {
 }
 
 async function tryAddImage(img: any, transform: number[], images: ImageInfo[], seenImages: Set<string>) {
-  const dataUri = await convertRawToPngDataUri(img)
+  const dataUri = convertRawToPngDataUri(img)
   if (!dataUri || seenImages.has(dataUri)) return
   seenImages.add(dataUri)
   images.push({
@@ -168,21 +169,26 @@ function multiply(m1: number[], m2: number[]): number[] {
   ]
 }
 
-async function convertRawToPngDataUri(img: any): Promise<string | null> {
+function convertRawToPngDataUri(img: any): string | null {
   if (!img.data || img.width <= 0 || img.height <= 0) return null
   try {
     const channels = Math.round(img.data.length / (img.width * img.height))
-    if (channels !== 1 && channels !== 2 && channels !== 3 && channels !== 4) {
-      return null
-    }
-    const image = sharp(Buffer.from(img.data), {
-      raw: {
-        width: img.width,
-        height: img.height,
-        channels: channels as 1 | 2 | 3 | 4
-      }
+    const colorType =
+      channels === 1 ? 0 :
+      channels === 2 ? 4 :
+      channels === 3 ? 2 :
+      channels === 4 ? 6 :
+      null
+    if (colorType === null) return null
+
+    const png = new PNG({
+      width: img.width,
+      height: img.height,
+      inputColorType: colorType,
+      inputHasAlpha: channels === 2 || channels === 4,
     })
-    const pngBuffer = await image.png().toBuffer()
+    png.data = Buffer.from(img.data)
+    const pngBuffer = PNG.sync.write(png)
     return `data:image/png;base64,${pngBuffer.toString('base64')}`
   } catch (err) {
     console.error('[pdf-extract-image] failed to convert:', err)
