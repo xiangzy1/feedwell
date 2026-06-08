@@ -1,12 +1,153 @@
 import { ipcMain, net } from 'electron'
-import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import sharp from 'sharp'
 
 const CJK_REGEX = /[一-龥⼀-⿟⺀-⻳぀-ヿ가-힯＀-￯]/
 const CJK_SPACING_RE = /([一-龥⼀-⿟⺀-⻳぀-ヿ가-힯＀-￯])\s+([一-龥⼀-⿟⺀-⻳぀-ヿ가-힯＀-￯])/g
 
+// DOMMatrix polyfill for pdfjs-dist (browser API not available in Electron main process)
+class DOMMatrixPolyfill {
+  is2D = true
+  m11 = 1; m12 = 0; m13 = 0; m14 = 0
+  m21 = 0; m22 = 1; m23 = 0; m24 = 0
+  m31 = 0; m32 = 0; m33 = 1; m34 = 0
+  m41 = 0; m42 = 0; m43 = 0; m44 = 1
+  get a() { return this.m11 }
+  get b() { return this.m12 }
+  get c() { return this.m21 }
+  get d() { return this.m22 }
+  get e() { return this.m41 }
+  get f() { return this.m42 }
+  get isIdentity() {
+    return this.m11===1&&this.m22===1&&this.m33===1&&this.m44===1&&
+      this.m12===0&&this.m13===0&&this.m14===0&&
+      this.m21===0&&this.m23===0&&this.m24===0&&
+      this.m31===0&&this.m32===0&&this.m34===0&&
+      this.m41===0&&this.m42===0&&this.m43===0
+  }
+  constructor(init?: any) {
+    if (!init) return
+    if (Array.isArray(init)) {
+      if (init.length === 6) {
+        this.m11=init[0]; this.m12=init[1]; this.m21=init[2]; this.m22=init[3]; this.m41=init[4]; this.m42=init[5]
+      } else if (init.length === 16) {
+        [this.m11,this.m12,this.m13,this.m14,this.m21,this.m22,this.m23,this.m24,
+         this.m31,this.m32,this.m33,this.m34,this.m41,this.m42,this.m43,this.m44] = init
+      }
+    } else if (typeof init === 'object') {
+      this.m11 = init.m11 ?? init.a ?? 1
+      this.m12 = init.m12 ?? init.b ?? 0
+      this.m13 = init.m13 ?? 0
+      this.m14 = init.m14 ?? 0
+      this.m21 = init.m21 ?? init.c ?? 0
+      this.m22 = init.m22 ?? init.d ?? 1
+      this.m23 = init.m23 ?? 0
+      this.m24 = init.m24 ?? 0
+      this.m31 = init.m31 ?? 0
+      this.m32 = init.m32 ?? 0
+      this.m33 = init.m33 ?? 1
+      this.m34 = init.m34 ?? 0
+      this.m41 = init.m41 ?? init.e ?? 0
+      this.m42 = init.m42 ?? init.f ?? 0
+      this.m43 = init.m43 ?? 0
+      this.m44 = init.m44 ?? init.m44 ?? 1
+    } else if (typeof init === 'string') {
+      const match = init.match(/matrix\(([^)]+)\)/i)
+      if (match) {
+        const parts = match[1].split(',').map((s: string) => parseFloat(s.trim()))
+        if (parts.length === 6) {
+          this.m11=parts[0]; this.m12=parts[1]; this.m21=parts[2]; this.m22=parts[3]; this.m41=parts[4]; this.m42=parts[5]
+        }
+      } else {
+        const match3d = init.match(/matrix3d\(([^)]+)\)/i)
+        if (match3d) {
+          const parts = match3d[1].split(',').map((s: string) => parseFloat(s.trim()))
+          if (parts.length === 16) {
+            [this.m11,this.m12,this.m13,this.m14,this.m21,this.m22,this.m23,this.m24,
+             this.m31,this.m32,this.m33,this.m34,this.m41,this.m42,this.m43,this.m44] = parts
+          }
+        }
+      }
+    }
+  }
+  private setMatrixValue(o: DOMMatrixPolyfill): this {
+    this.m11 = o.m11; this.m12 = o.m12; this.m13 = o.m13; this.m14 = o.m14
+    this.m21 = o.m21; this.m22 = o.m22; this.m23 = o.m23; this.m24 = o.m24
+    this.m31 = o.m31; this.m32 = o.m32; this.m33 = o.m33; this.m34 = o.m34
+    this.m41 = o.m41; this.m42 = o.m42; this.m43 = o.m43; this.m44 = o.m44
+    return this
+  }
+  multiply(o: DOMMatrixPolyfill): DOMMatrixPolyfill {
+    const r = new DOMMatrixPolyfill()
+    r.m11 = this.m11 * o.m11 + this.m21 * o.m12 + this.m31 * o.m13 + this.m41 * o.m14
+    r.m12 = this.m12 * o.m11 + this.m22 * o.m12 + this.m32 * o.m13 + this.m42 * o.m14
+    r.m13 = this.m13 * o.m11 + this.m23 * o.m12 + this.m33 * o.m13 + this.m43 * o.m14
+    r.m14 = this.m14 * o.m11 + this.m24 * o.m12 + this.m34 * o.m13 + this.m44 * o.m14
+
+    r.m21 = this.m11 * o.m21 + this.m21 * o.m22 + this.m31 * o.m23 + this.m41 * o.m24
+    r.m22 = this.m12 * o.m21 + this.m22 * o.m22 + this.m32 * o.m23 + this.m42 * o.m24
+    r.m23 = this.m13 * o.m21 + this.m23 * o.m22 + this.m33 * o.m23 + this.m43 * o.m24
+    r.m24 = this.m14 * o.m21 + this.m24 * o.m22 + this.m34 * o.m23 + this.m44 * o.m24
+
+    r.m31 = this.m11 * o.m31 + this.m21 * o.m32 + this.m31 * o.m33 + this.m41 * o.m34
+    r.m32 = this.m12 * o.m31 + this.m22 * o.m32 + this.m32 * o.m33 + this.m42 * o.m34
+    r.m33 = this.m13 * o.m31 + this.m23 * o.m32 + this.m33 * o.m33 + this.m43 * o.m34
+    r.m34 = this.m14 * o.m31 + this.m24 * o.m32 + this.m34 * o.m33 + this.m44 * o.m34
+
+    r.m41 = this.m11 * o.m41 + this.m21 * o.m42 + this.m31 * o.m43 + this.m41 * o.m44
+    r.m42 = this.m12 * o.m41 + this.m22 * o.m42 + this.m32 * o.m43 + this.m42 * o.m44
+    r.m43 = this.m13 * o.m41 + this.m23 * o.m42 + this.m33 * o.m43 + this.m43 * o.m44
+    r.m44 = this.m14 * o.m41 + this.m24 * o.m42 + this.m34 * o.m43 + this.m44 * o.m44
+    return r
+  }
+  multiplySelf(o: DOMMatrixPolyfill): DOMMatrixPolyfill {
+    const r = this.multiply(o)
+    return this.setMatrixValue(r)
+  }
+  preMultiplySelf(o: DOMMatrixPolyfill): DOMMatrixPolyfill {
+    const r = o.multiply(this)
+    return this.setMatrixValue(r)
+  }
+  inverse(): DOMMatrixPolyfill {
+    const [a,b,c,d,e,f] = [this.m11,this.m12,this.m21,this.m22,this.m41,this.m42]
+    const det = a*d-b*c
+    if (det === 0) return new DOMMatrixPolyfill()
+    const r = new DOMMatrixPolyfill()
+    r.m11=d/det; r.m12=-b/det; r.m21=-c/det; r.m22=a/det
+    r.m41=(c*f-d*e)/det; r.m42=(b*e-a*f)/det
+    r.m33=1; r.m44=1
+    return r
+  }
+  invertSelf(): DOMMatrixPolyfill {
+    const r = this.inverse()
+    return this.setMatrixValue(r)
+  }
+  translate(tx: number, ty: number, tz = 0): DOMMatrixPolyfill {
+    return this.multiply(new DOMMatrixPolyfill([1,0,0,1,tx,ty]))
+  }
+  scale(sx: number, ..._args: number[]): DOMMatrixPolyfill {
+    const sy = _args[0] ?? sx
+    return this.multiply(new DOMMatrixPolyfill([sx,0,0,sy,0,0]))
+  }
+  toString(): string {
+    return `matrix(${this.a},${this.b},${this.c},${this.d},${this.e},${this.f})`
+  }
+}
+
+type PdfjsModule = typeof import('pdfjs-dist/legacy/build/pdf.mjs')
+let _pdfjs: PdfjsModule | null = null
+
+async function loadPdfjs(): Promise<PdfjsModule> {
+  if (_pdfjs) return _pdfjs
+  if (typeof (globalThis as any).DOMMatrix === 'undefined') {
+    ;(globalThis as any).DOMMatrix = DOMMatrixPolyfill
+  }
+  _pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  return _pdfjs
+}
+
 export function registerPdfIpc(): void {
   ipcMain.handle('pdf:extractText', async (_event, url: string) => {
+    const { getDocument, OPS } = await loadPdfjs()
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 30000)
     try {
