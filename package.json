@@ -1,6 +1,6 @@
 {
   "name": "feedwell",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "A clean, native-feeling RSS reader",
   "main": "./out/main/index.js",
   "scripts": {
