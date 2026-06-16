@@ -169,26 +169,60 @@ function multiply(m1: number[], m2: number[]): number[] {
   ]
 }
 
-function convertRawToPngDataUri(img: any): string | null {
-  if (!img.data || img.width <= 0 || img.height <= 0) return null
-  try {
-    const channels = Math.round(img.data.length / (img.width * img.height))
-    const colorType =
-      channels === 1 ? 0 :
-      channels === 2 ? 4 :
-      channels === 3 ? 2 :
-      channels === 4 ? 6 :
-      null
-    if (colorType === null) return null
+// Mirrors pdfjs ImageKind (see pdfjs-dist/types/src/shared/util.d.ts)
+const IMAGE_KIND = {
+  GRAYSCALE_1BPP: 1,
+  RGB_24BPP: 2,
+  RGBA_32BPP: 3,
+} as const
 
-    const png = new PNG({
-      width: img.width,
-      height: img.height,
-      inputColorType: colorType,
-      inputHasAlpha: channels === 2 || channels === 4,
-    })
-    png.data = Buffer.from(img.data)
-    const pngBuffer = PNG.sync.write(png)
+function convertRawToPngDataUri(img: any): string | null {
+  if (!img?.data || img.width <= 0 || img.height <= 0) return null
+  try {
+    const w = img.width
+    const h = img.height
+    const src = Buffer.from(img.data as ArrayBuffer | Uint8Array)
+    let rgba: Buffer
+
+    switch (img.kind) {
+      case IMAGE_KIND.RGBA_32BPP:
+        rgba = src.subarray(0, w * h * 4)
+        break
+      case IMAGE_KIND.RGB_24BPP: {
+        rgba = Buffer.alloc(w * h * 4)
+        for (let i = 0, j = 0; i < rgba.length; i += 4, j += 3) {
+          rgba[i] = src[j]
+          rgba[i + 1] = src[j + 1]
+          rgba[i + 2] = src[j + 2]
+          rgba[i + 3] = 0xff
+        }
+        break
+      }
+      case IMAGE_KIND.GRAYSCALE_1BPP: {
+        rgba = Buffer.alloc(w * h * 4)
+        const rowBytes = (w + 7) >> 3
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const byte = src[y * rowBytes + (x >> 3)]
+            const v = (byte >> (7 - (x & 7))) & 1 ? 0xff : 0x00
+            const o = (y * w + x) << 2
+            rgba[o] = rgba[o + 1] = rgba[o + 2] = v
+            rgba[o + 3] = 0xff
+          }
+        }
+        break
+      }
+      default:
+        return null
+    }
+
+    const pngOpts = { width: w, height: h, inputColorType: 6, inputHasAlpha: true, colorType: 6 }
+    const png = new PNG(pngOpts)
+    png.data = rgba
+    // PNG.sync.write ignores the constructor options and rebuilds its own packer from `opt`,
+    // so we must pass the same options again to keep inputColorType=6 (otherwise it defaults
+    // to RGBA but takes the no-op fast path that returns the raw buffer as-is).
+    const pngBuffer = PNG.sync.write(png, pngOpts)
     return `data:image/png;base64,${pngBuffer.toString('base64')}`
   } catch (err) {
     console.error('[pdf-extract-image] failed to convert:', err)
