@@ -24,7 +24,19 @@ export default function AddFeedDialog({ open, onAdd, onClose }: Props) {
   )
 
   useEffect(() => {
-    if (open) window.api.folders.list().then(folders => setState({ folders }))
+    if (open) {
+      window.api.folders.list().then(folders => setState({ folders }))
+    } else {
+      // reset form state so reopening the dialog starts fresh
+      setState({
+        url: '',
+        loading: false,
+        error: '',
+        selectedFolderId: null,
+        showNewFolder: false,
+        newFolderName: '',
+      })
+    }
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,6 +77,7 @@ export default function AddFeedDialog({ open, onAdd, onClose }: Props) {
           value={state.url}
           onChange={e => setState({ url: e.target.value })}
           className="dialog-input"
+          autoFocus
         />
         <div style={{ marginTop: 10 }}>
           <select
