@@ -44,16 +44,22 @@ export default function PodcastPlayer({ url }: Props) {
       audio.playbackRate = speed
     }
     const onTimeUpdate = () => setCurrentTime(audio.currentTime)
-    const onEnded = () => { setPlaying(false); setCurrentTime(0) }
+    const onPlay = () => setPlaying(true)
+    const onPause = () => setPlaying(false)
+    const onEnded = () => setCurrentTime(0)
 
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
     audio.addEventListener('timeupdate', onTimeUpdate)
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
     audio.addEventListener('ended', onEnded)
 
     return () => {
       audio.pause()
       audio.removeEventListener('loadedmetadata', onLoadedMetadata)
       audio.removeEventListener('timeupdate', onTimeUpdate)
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
       audio.removeEventListener('ended', onEnded)
       audio.src = ''
       audioRef.current = null
@@ -77,10 +83,8 @@ export default function PodcastPlayer({ url }: Props) {
     if (!audio) return
     if (audio.paused) {
       audio.play().catch(() => {})
-      setPlaying(true)
     } else {
       audio.pause()
-      setPlaying(false)
     }
   }, [])
 
